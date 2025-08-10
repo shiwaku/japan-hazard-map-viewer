@@ -7,11 +7,11 @@ const map = new maplibregl.Map({
     container: 'map',
     style: 'std_1.json',
     // style: 'https://tile2.openstreetmap.jp/styles/osm-bright/style.json',
-    center: [131.6469, 32.6404],
-    zoom: 11.03,
+    center: [134.40267, 34.73987],
+    zoom: 14.55,
     minZoom: 1,
     maxZoom: 23,
-    pitch: 0,
+    pitch: 60,
     maxPitch: 85,
     bearing: 0,
     hash: true,
@@ -120,7 +120,7 @@ map.on("load", () => {
     });
 
     // 産総研 シームレス標高タイルセット
-    // map.setTerrain({ 'source': 'aist-dem', 'exaggeration': 1 });
+    map.setTerrain({ 'source': 'aist-dem', 'exaggeration': 1 });
 
     // 洪水浸水想定区域（想定最大規模）ソース
     map.addSource("flood_l2_shinsuishin", {
