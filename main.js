@@ -1,4 +1,3 @@
-
 // addProtocolの設定
 let protocol = new pmtiles.Protocol();
 maplibregl.addProtocol("pmtiles", protocol.tile);
@@ -81,7 +80,7 @@ map.addControl(new maplibregl.ScaleControl({
 // Attributionを折りたたみ表示
 map.addControl(new maplibregl.AttributionControl({
     compact: true,
-    customAttribution: '（<a href="https://twitter.com/shi__works" target="_blank">X(旧Twitter)</a> | <a href="https://github.com/shiwaku/japan-hazard-map-on-maplibre" target="_blank">GitHub</a>） '
+    customAttribution: '（<a href="https://twitter.com/shi__works" target="_blank">Twitter</a> | <a href="https://github.com/shi-works/japan-hazard-map-on-maplibre-gl-js" target="_blank">Github</a>） '
 }));
 
 // 3D地形コントロール
@@ -533,20 +532,26 @@ map.on("load", () => {
         "attribution": "<a href='https://www.gsi.go.jp/bousaichiri/hinanbasho.html'>指定緊急避難場所データ（国土地理院Webサイト）を加工して作成</a>"
     });
 
-    // 指定緊急避難場所（アイコン→レイヤ）
-    map.loadImage('img/location-pin.png', (err, image) => {
-        if (err) { console.error(err); return; }
-        if (!map.hasImage('location-pin-1')) map.addImage('location-pin-1', image);
+    // PNGソース
+    map.loadImage('./img/location-pin.png',
+        function (error, image) {
+            if (error) throw error;
+            map.addImage('location-pin-1', image);
+        }
+    );
 
-        if (!map.getLayer('hinanbasho')) {
-            map.addLayer({
-                id: 'hinanbasho',
-                source: 'hinanbasho',
-                'source-layer': 'hinanbasho_20240129',
-                minzoom: 12, maxzoom: 23, type: 'symbol',
-                layout: { 'icon-image': 'location-pin-1', 'icon-size': 0.5, 'icon-allow-overlap': true }
-            });
-            map.setFilter('hinanbasho', ['==', '洪水', '1']);
+    // 指定緊急避難場所シンボルレイヤ
+    map.addLayer({
+        "id": "hinanbasho",
+        "source": "hinanbasho",
+        "source-layer": "hinanbasho_20240129",
+        "minzoom": 12,
+        "maxzoom": 23,
+        "type": "symbol",
+        "layout": {
+            "icon-image": "location-pin-1",
+            "icon-size": 0.5,
+            "icon-allow-overlap": true, // シンボルの重なりを許可
         }
     });
 
@@ -560,19 +565,25 @@ map.on("load", () => {
         "attribution": "<a href='https://www.gsi.go.jp/bousaichiri/denshouhi_datainfo.html'>自然災害伝承碑データ（国土地理院Webサイト）</a>"
     });
 
-    // 自然災害伝承碑（アイコン→レイヤ）
-    map.loadImage('img/location-pin2_red.png', (err, image) => {
-        if (err) { console.error(err); return; }
-        if (!map.hasImage('location-pin-2')) map.addImage('location-pin-2', image);
+    // PNGソース
+    map.loadImage('./img/location-pin2_red.png', // location-pinアイコンのURLを指定
+        function (error, image) {
+            if (error) throw error;
+            map.addImage('location-pin-2', image); // 'location-pin'という名前でアイコンを追加
+        }
+    );
 
-        if (!map.getLayer('denshouhi')) {
-            map.addLayer({
-                id: 'denshouhi',
-                type: 'symbol',
-                source: 'denshouhi',
-                minzoom: 9, maxzoom: 23,
-                layout: { 'icon-image': 'location-pin-2', 'icon-size': 0.5, 'icon-allow-overlap': true }
-            });
+    // 自然災害伝承碑シンボルレイヤ
+    map.addLayer({
+        'id': 'denshouhi',
+        "type": "symbol",
+        'source': 'denshouhi',
+        "minzoom": 9,
+        "maxzoom": 23,
+        "layout": {
+            "icon-image": "location-pin-2",
+            "icon-size": 0.5,
+            "icon-allow-overlap": true, // シンボルの重なりを許可
         }
     });
 
@@ -603,6 +614,19 @@ radios.forEach(radio => {
         switchLegend(this.value);
     });
 });
+
+// ---------- 追加：安全にフィルタをかけるヘルパー ----------
+function setHinanbashoFilterSafe(expr) {
+    if (map.getLayer('hinanbasho')) {
+        map.setFilter('hinanbasho', expr);
+    } else {
+        // まだレイヤが無ければ、描画がアイドルになった後に一度だけ適用
+        map.once('idle', () => {
+            if (map.getLayer('hinanbasho')) map.setFilter('hinanbasho', expr);
+        });
+    }
+}
+
 
 // レイヤーを切り替える関数
 function switchLayer(layerId) {
