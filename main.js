@@ -1,6 +1,3 @@
-// Terrain-RGB形式への変換モジュール
-maplibregl.addProtocol('numpng', makeNumPngProtocol());
-import { makeNumPngProtocol } from './numPngProtocol.js'
 
 // addProtocolの設定
 let protocol = new pmtiles.Protocol();
@@ -84,7 +81,7 @@ map.addControl(new maplibregl.ScaleControl({
 // Attributionを折りたたみ表示
 map.addControl(new maplibregl.AttributionControl({
     compact: true,
-    customAttribution: '（<a href="https://twitter.com/shi__works" target="_blank">Twitter</a> | <a href="https://github.com/shi-works/japan-hazard-map-on-maplibre-gl-js" target="_blank">Github</a>） '
+    customAttribution: '（<a href="https://twitter.com/shi__works" target="_blank">X(旧Twitter)</a> | <a href="https://github.com/shiwaku/japan-hazard-map-on-maplibre" target="_blank">GitHub</a>） '
 }));
 
 // 3D地形コントロール
@@ -118,8 +115,8 @@ map.on("load", () => {
     // 産総研 シームレス標高タイルソース
     map.addSource("aist-dem", {
         "type": "raster-dem",
-        "tiles": ["numpng://tiles.gsj.jp/tiles/elev/mixed/{z}/{y}/{x}.png"],
-        "attribution": "<a href='https://tiles.gsj.jp/tiles/elev/tiles.html' target='_blank'>産業技術総合研究所 シームレス標高タイル(統合DEM)</a>",
+        "tiles": ["https://gbank.gsj.jp/seamless/elev/terrainRGB/land/{z}/{y}/{x}.png"],
+        "attribution": "<a href='https://tiles.gsj.jp/tiles/elev/tiles.html' target='_blank'>産業技術総合研究所 シームレス標高タイル(陸域統合DEM)</a>",
         "tileSize": 256
     });
 
@@ -536,26 +533,20 @@ map.on("load", () => {
         "attribution": "<a href='https://www.gsi.go.jp/bousaichiri/hinanbasho.html'>指定緊急避難場所データ（国土地理院Webサイト）を加工して作成</a>"
     });
 
-    // PNGソース
-    map.loadImage('./img/location-pin.png',
-        function (error, image) {
-            if (error) throw error;
-            map.addImage('location-pin-1', image);
-        }
-    );
+    // 指定緊急避難場所（アイコン→レイヤ）
+    map.loadImage('img/location-pin.png', (err, image) => {
+        if (err) { console.error(err); return; }
+        if (!map.hasImage('location-pin-1')) map.addImage('location-pin-1', image);
 
-    // 指定緊急避難場所シンボルレイヤ
-    map.addLayer({
-        "id": "hinanbasho",
-        "source": "hinanbasho",
-        "source-layer": "hinanbasho_20240129",
-        "minzoom": 12,
-        "maxzoom": 23,
-        "type": "symbol",
-        "layout": {
-            "icon-image": "location-pin-1",
-            "icon-size": 0.5,
-            "icon-allow-overlap": true, // シンボルの重なりを許可
+        if (!map.getLayer('hinanbasho')) {
+            map.addLayer({
+                id: 'hinanbasho',
+                source: 'hinanbasho',
+                'source-layer': 'hinanbasho_20240129',
+                minzoom: 12, maxzoom: 23, type: 'symbol',
+                layout: { 'icon-image': 'location-pin-1', 'icon-size': 0.5, 'icon-allow-overlap': true }
+            });
+            map.setFilter('hinanbasho', ['==', '洪水', '1']);
         }
     });
 
@@ -569,25 +560,19 @@ map.on("load", () => {
         "attribution": "<a href='https://www.gsi.go.jp/bousaichiri/denshouhi_datainfo.html'>自然災害伝承碑データ（国土地理院Webサイト）</a>"
     });
 
-    // PNGソース
-    map.loadImage('./img/location-pin2_red.png', // location-pinアイコンのURLを指定
-        function (error, image) {
-            if (error) throw error;
-            map.addImage('location-pin-2', image); // 'location-pin'という名前でアイコンを追加
-        }
-    );
+    // 自然災害伝承碑（アイコン→レイヤ）
+    map.loadImage('img/location-pin2_red.png', (err, image) => {
+        if (err) { console.error(err); return; }
+        if (!map.hasImage('location-pin-2')) map.addImage('location-pin-2', image);
 
-    // 自然災害伝承碑シンボルレイヤ
-    map.addLayer({
-        'id': 'denshouhi',
-        "type": "symbol",
-        'source': 'denshouhi',
-        "minzoom": 9,
-        "maxzoom": 23,
-        "layout": {
-            "icon-image": "location-pin-2",
-            "icon-size": 0.5,
-            "icon-allow-overlap": true, // シンボルの重なりを許可
+        if (!map.getLayer('denshouhi')) {
+            map.addLayer({
+                id: 'denshouhi',
+                type: 'symbol',
+                source: 'denshouhi',
+                minzoom: 9, maxzoom: 23,
+                layout: { 'icon-image': 'location-pin-2', 'icon-size': 0.5, 'icon-allow-overlap': true }
+            });
         }
     });
 
