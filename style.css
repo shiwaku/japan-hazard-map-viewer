@@ -223,3 +223,49 @@
             width: 15px;
             height: 15px;
         }
+
+        .custom-popup .maplibregl-popup-content {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 7px;
+            padding: 9px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-panel {
+            position: absolute;
+            bottom: 105px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 7px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-panel button {
+            display: block;
+            margin-bottom: 5px;
+            width: 100%;
+            background: transparent;
+            border: 2px solid transparent;
+            padding: 10px;
+            cursor: pointer;
+            transition: border 0.3s;
+        }
+
+        .control-panel button.selected {
+            border: 2px solid red;
+            border-radius: 5px;
+        }
+
+        .osm-credit {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }

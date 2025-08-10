@@ -80,7 +80,7 @@ map.addControl(new maplibregl.ScaleControl({
 // Attributionを折りたたみ表示
 map.addControl(new maplibregl.AttributionControl({
     compact: true,
-    customAttribution: '（<a href="https://twitter.com/shi__works" target="_blank">Twitter</a> | <a href="https://github.com/shi-works/japan-hazard-map-on-maplibre-gl-js" target="_blank">Github</a>） '
+    customAttribution: '（<a href="https://twitter.com/shi__works" target="_blank">X(旧Twitter)</a> | <a href="https://github.com/shiwaku/japan-hazard-map-on-maplibre" target="_blank">GitHub</a>） '
 }));
 
 // 3D地形コントロール
@@ -717,6 +717,7 @@ document.getElementById('pop-map').addEventListener('change', function (e) {
     }
 });
 
+/*
 // ============================== ポップアップ表示 ==============================
 
 // 指定緊急避難場所ポップアップ表示
@@ -1060,3 +1061,471 @@ map.on('click', '100m_mesh_pop2020_fill', (e) => {
         )
         .addTo(map);
 });
+*/
+
+// ============================== 避難場所までの避難経路の表示 ==============================
+
+// ============================== 避難場所までの避難経路の表示 ==============================
+// 現在選択中の経路プロファイル（徒歩/車）・速度・歩行アニメGIF・描画ルートID用カウンタ
+var currentProfile = 'foot';
+var currentSpeed = 4 / 3.6;     // km/h → m/s に換算（初期値 4 km/h）
+var currentGif = 'person.gif';
+var routeCounter = 0;
+
+/**
+ * 速度/プロファイル切り替え（UIボタンから呼び出し）
+ * @param {'person'|'elderly'|'car'} profile 表示プロファイル
+ * @param {number} speed km/h
+ */
+function setSpeed(profile, speed) {
+    // ルーティングAPI用のprofileは car / foot の2択に正規化
+    currentProfile = profile === 'car' ? 'car' : 'foot';
+    // 速度は m/s に変換
+    currentSpeed = speed / 3.6;
+    // 歩行アニメ用GIFファイル名
+    currentGif = profile + '.gif';
+    // ボタンの選択状態を更新
+    updateButtonSelection(profile);
+}
+// グローバルに公開（HTMLのonclickから呼べるように）
+window.setSpeed = setSpeed;
+
+/**
+ * 右下の速度切替ボタンの選択表示を更新
+ */
+function updateButtonSelection(profile) {
+    document.getElementById('carButton').classList.remove('selected');
+    document.getElementById('personButton').classList.remove('selected');
+    document.getElementById('elderlyButton').classList.remove('selected');
+
+    if (profile === 'car') {
+        document.getElementById('carButton').classList.add('selected');
+    } else if (profile === 'person') {
+        document.getElementById('personButton').classList.add('selected');
+    } else if (profile === 'elderly') {
+        document.getElementById('elderlyButton').classList.add('selected');
+    }
+}
+
+// 各ハザードレイヤの表示状態
+var layersVisible = {
+    flood: false,
+    tsunami: false,
+    kaoku: false
+};
+
+/**
+ * 任意レイヤのON/OFF
+ */
+function toggleLayer(layer) {
+    layersVisible[layer] = !layersVisible[layer];
+    map.setLayoutProperty(layer + '-layer', 'visibility', layersVisible[layer] ? 'visible' : 'none');
+    document.getElementById(layer + 'Button').classList.toggle('selected', layersVisible[layer]);
+}
+
+/**
+ * 家屋浸水（氾濫/河岸）レイヤのON/OFF（2レイヤ同時制御）
+ */
+function toggleKaokuLayers() {
+    layersVisible.kaoku = !layersVisible.kaoku;
+    map.setLayoutProperty('hanran-layer', 'visibility', layersVisible.kaoku ? 'visible' : 'none');
+    map.setLayoutProperty('kagan-layer', 'visibility', layersVisible.kaoku ? 'visible' : 'none');
+    document.getElementById('kaokuButton').classList.toggle('selected', layersVisible.kaoku);
+}
+
+var routes = [];                // ルート情報の保管（必要に応じて利用）
+var destinationMarkers = [];    // 目的地マーカーの参照保持
+
+// 地図クリックで計算開始
+map.on('click', (e) => {
+    // クリック地点を startMarker にセットするが、地図には追加しない＝「クリック地点マーカーは非表示」
+    var startMarker = createStandardMarker(e.lngLat.lng, e.lngLat.lat);
+    // 近傍の避難場所を取得して最短ルートを探索
+    fetchNearestEvacuationPoints(e.lngLat, startMarker);
+});
+
+/**
+ * MapLibreの標準Markerを生成（表示は呼び出し側で addTo したときのみ）
+ */
+function createStandardMarker(lng, lat) {
+    return new maplibregl.Marker().setLngLat([lng, lat]);
+}
+
+/**
+ * BODIK WAPIから近傍の避難場所を取得。
+ * 失敗時は地図上の 'hinanbasho' レイヤからフォールバックで最近傍を抽出。
+ */
+async function fetchNearestEvacuationPoints(latlng, startMarker) {
+    const url = new URL('https://wapi.bodik.jp/evacuation_space');
+    url.searchParams.set('select_type', 'geometry');
+    url.searchParams.set('maxResults', '10');
+    url.searchParams.set('lat', String(latlng.lat));
+    url.searchParams.set('lon', String(latlng.lng));
+    url.searchParams.set('distance', '10000');
+
+    try {
+        const res = await fetch(url.toString());
+        if (!res.ok) {
+            const txt = await res.text();
+            console.warn('WAPI status:', res.status, txt);
+            throw new Error('WAPI not ok');
+        }
+        const data = await res.json();
+
+        // 返却形式の揺れを吸収して features 配列に正規化
+        const features =
+            (data && data.resultsets && data.resultsets.features) ||
+            (data && data.resultset && data.resultset.features) ||
+            (data && data.features) ||
+            [];
+
+        if (!Array.isArray(features) || features.length === 0) {
+            throw new Error('no features from WAPI');
+        }
+
+        // 候補点を [lng,lat] + 属性 に整形
+        const candidates = features
+            .filter(f => f && f.geometry && Array.isArray(f.geometry.coordinates))
+            .map(f => ({
+                coordinates: f.geometry.coordinates,     // [lng, lat]
+                properties: f.properties || {}
+            }));
+
+        findShortestRoute(startMarker, candidates);
+    } catch (err) {
+        console.error('Error fetching evacuation points (WAPI):', err);
+
+        // ---- フォールバック：画面上に描画済みの 'hinanbasho' から最近傍を採用 ----
+        const rendered = map.queryRenderedFeatures({ layers: ['hinanbasho'] });
+        if (!rendered.length) {
+            alert('避難場所が見つかりません（WAPI/フォールバックともに失敗）');
+            return;
+        }
+
+        // クリック地点からの直線距離で近い順に5件抽出
+        const R = 6371000, toRad = d => d * Math.PI / 180;
+        const dist = (a, b) => {
+            const [lng1, lat1] = a, [lng2, lat2] = b;
+            const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+            const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+            return 2 * R * Math.asin(Math.sqrt(s));
+        };
+
+        const candidates = rendered.map(f => ({
+            coordinates: f.geometry.coordinates,
+            properties: f.properties || {}
+        }))
+            .sort((a, b) =>
+                dist([a.coordinates[0], a.coordinates[1]], [latlng.lng, latlng.lat]) -
+                dist([b.coordinates[0], b.coordinates[1]], [latlng.lng, latlng.lat])
+            )
+            .slice(0, 5);
+
+        findShortestRoute(startMarker, candidates);
+    }
+}
+
+/**
+ * 候補の避難場所それぞれに対してルート検索し、最短ルートを選ぶ
+ */
+function findShortestRoute(startMarker, candidates) {
+    var routesPromises = candidates.map(candidate => {
+        var endLatLng = { lat: candidate.coordinates[1], lng: candidate.coordinates[0] };
+        // BODIKのルーティングAPI。pointは lat,lng の順で指定
+        var url = `https://apps.bodik.jp/route?point=${startMarker.getLngLat().lat},${startMarker.getLngLat().lng}&point=${endLatLng.lat},${endLatLng.lng}&profile=${currentProfile}&type=json`;
+
+        return fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                return {
+                    route: data.paths[0],     // GraphHopper互換のレスポンス想定
+                    endLatLng: endLatLng,
+                    properties: candidate.properties
+                };
+            });
+    });
+
+    Promise.all(routesPromises)
+        .then(routes => {
+            // 距離が最小のものを最短ルートとして採用
+            var shortestRoute = routes.reduce((prev, curr) => {
+                return (prev.route.distance < curr.route.distance) ? prev : curr;
+            });
+
+            displayRoute(startMarker, shortestRoute);
+        })
+        .catch(error => {
+            console.error("Error fetching routes:", error);
+        });
+}
+
+/**
+ * 選ばれた最短ルートを地図に描画し、マーカー/ポップアップ/歩行アニメを開始
+ */
+function displayRoute(startMarker, shortestRoute) {
+    // ポリライン（エンコード）→配列座標（[lng,lat]）に復元
+    var route = shortestRoute.route.points;
+    var decodedRoute = polyline.decode(route);
+    var latLngs = decodedRoute.map(function (point) {
+        return [point[1], point[0]]; // polylineは [lat, lng] なので [lng, lat] へ並べ替え
+    });
+
+    var totalDistance = getTotalDistance(latLngs);   // ルート全長（m）
+    var color = getRouteColor(totalDistance);        // 全長に応じた線色
+
+    // ルート線の追加
+    var routeSourceId = 'route' + routeCounter++;
+    map.addSource(routeSourceId, {
+        type: 'geojson',
+        data: {
+            type: 'Feature',
+            geometry: {
+                type: 'LineString',
+                coordinates: latLngs
+            }
+        }
+    });
+    map.addLayer({
+        id: routeSourceId,
+        type: 'line',
+        source: routeSourceId,
+        layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        paint: {
+            'line-color': color,
+            'line-width': 8
+        }
+    });
+
+    // === 目的地マーカー：添付の避難所アイコンGIFで表示 ===
+    const evacImg = document.createElement('img');
+    evacImg.src = './gif/evac_place.gif';   // 添付GIF（配置パスに合わせて調整）
+    evacImg.alt = '避難場所';
+    evacImg.style.width = '32px';
+    evacImg.style.height = '32px';
+
+    // 目的地マーカー（下端を基準に配置するとピクトの見栄えが良い）
+    var destinationMarker = new maplibregl.Marker({
+        element: evacImg,
+        anchor: 'bottom'
+    })
+        .setLngLat([shortestRoute.endLatLng.lng, shortestRoute.endLatLng.lat])
+        // ★ 目的地名のポップアップ：上方向にオフセット
+        //    anchor:'bottom' でマーカーの上に出し、さらに offset で上にずらす
+        .setPopup(new maplibregl.Popup({
+            className: 'custom-popup',
+            anchor: 'bottom',
+            offset: [0, -40]        // オフセット
+        }).setHTML(
+            `<b>${shortestRoute.properties.name || '避難場所'}</b><br>${shortestRoute.properties.address || ''}`
+        ))
+        .addTo(map)
+        .togglePopup();  // 初期表示で開く
+
+    destinationMarkers.push(destinationMarker);
+
+    // === 歩行アニメ用マーカー（現在の速度プロファイルのGIF） ===
+    var walkerMarker = new maplibregl.Marker({
+        element: document.createElement('img')
+    }).setLngLat([latLngs[0][0], latLngs[0][1]]).addTo(map);
+
+    walkerMarker.getElement().src = './gif/' + currentGif;
+    walkerMarker.getElement().style.width = '32px';
+    walkerMarker.getElement().style.height = '32px';
+
+    // 現在地ポップアップ（到着までの残距離/残時間）
+    const walkerPopup = new maplibregl.Popup({
+        closeButton: true,
+        autoClose: false,
+        closeOnClick: false,
+        anchor: 'top',       // 矢印を上向きに（ポップアップをマーカーの上側に）
+        offset: [0, 20],     // マーカーとポップアップの間隔
+        className: 'custom-popup'
+    }).setHTML(
+        '<b>到着まで</b><br>あと ' +
+        Math.round(totalDistance) + ' メートル (' +
+        formatTime(totalDistance / currentSpeed) + ')'
+    );
+
+    // マーカーにポップアップを紐付け、すぐに開く
+    walkerMarker.setPopup(walkerPopup);
+    walkerMarker.togglePopup();
+
+    // 歩行アニメ開始
+    startWalking(latLngs, walkerMarker, color);
+}
+
+/**
+ * 歩行アニメーション。
+ * ルート全長と現在速度から所要時間を計算し、requestAnimationFrameで位置を更新。
+ */
+function startWalking(latLngs, walkerMarker, initialColor) {
+    var totalDistance = getTotalDistance(latLngs);
+    var totalTime = totalDistance / currentSpeed; // 所要時間（秒）
+    var distanceCovered = 0;
+    var notificationShown = false;
+    var messagesShown = new Set();
+    var nextNotificationDistance = 10 + Math.random() * 500; // 10〜510mの間でランダム（※未使用）
+
+    var startTime = performance.now();
+
+    function animate() {
+        var currentTime = performance.now();
+        var elapsedTime = (currentTime - startTime) / 1000; // 経過秒
+        var progress = elapsedTime / totalTime;
+
+        if (progress < 1) {
+            var distanceTraveled = progress * totalDistance;
+            distanceCovered = 0;
+
+            // どの線分上にいるかを探索し、線形補間で現在位置を算出
+            for (var i = 1; i < latLngs.length; i++) {
+                var segmentDistance = distance([latLngs[i - 1][0], latLngs[i - 1][1]], [latLngs[i][0], latLngs[i][1]]);
+                if (distanceCovered + segmentDistance >= distanceTraveled) {
+                    var segmentProgress = (distanceTraveled - distanceCovered) / segmentDistance;
+                    var currentLat = latLngs[i - 1][1] + segmentProgress * (latLngs[i][1] - latLngs[i - 1][1]);
+                    var currentLng = latLngs[i - 1][0] + segmentProgress * (latLngs[i][0] - latLngs[i - 1][0]);
+                    var currentPosition = [currentLng, currentLat];
+
+                    // マーカー位置更新
+                    walkerMarker.setLngLat(currentPosition);
+
+                    // 残距離/残時間をポップアップに反映
+                    var remainingDistance = totalDistance - distanceTraveled;
+                    var remainingTime = totalTime - elapsedTime;
+                    if (walkerMarker.getPopup()) {
+                        walkerMarker.getPopup()
+                            .setLngLat(currentPosition)
+                            .setHTML('<b>到着まで</b><br>あと ' + Math.round(remainingDistance) + ' メートル (' + formatTime(remainingTime) + ')');
+                    }
+
+                    // 100m単位の現在距離（必要なら通知等に使用）
+                    var currentDistance = Math.floor(distanceTraveled / 100) * 100;
+
+                    break;
+                }
+                distanceCovered += segmentDistance;
+            }
+
+            requestAnimationFrame(animate);
+        } else {
+            // 到着したら歩行マーカーを除去
+            walkerMarker.remove();
+        }
+    }
+
+    requestAnimationFrame(animate);
+}
+
+/**
+ * ルート全長（m）をハーサイン距離の総和で算出
+ */
+function getTotalDistance(latLngs) {
+    var totalDistance = 0;
+    for (var i = 1; i < latLngs.length; i++) {
+        totalDistance += distance([latLngs[i - 1][0], latLngs[i - 1][1]], [latLngs[i][0], latLngs[i][1]]);
+    }
+    return totalDistance;
+}
+
+/**
+ * 秒 → 「X分 Y秒」表記に変換
+ */
+function formatTime(seconds) {
+    var minutes = Math.floor(seconds / 60);
+    var remainingSeconds = Math.floor(seconds % 60);
+    return minutes + '分 ' + remainingSeconds + '秒';
+}
+
+/**
+ * 全長に応じて線色を段階設定
+ */
+function getRouteColor(distance) {
+    if (distance <= 250) {
+        return 'blue';
+    } else if (distance <= 500) {
+        return '#3366FF';
+    } else if (distance <= 750) {
+        return '#6699FF';
+    } else if (distance <= 1000) {
+        return '#99CCFF';
+    } else if (distance <= 1250) {
+        return '#CCFFFF';
+    } else if (distance <= 1500) {
+        return '#FFCCCC';
+    } else if (distance <= 1750) {
+        return '#FF9999';
+    } else if (distance <= 2000) {
+        return '#FF6666';
+    } else {
+        return 'red';
+    }
+}
+
+/**
+ * 画面内にある地点のみ一時ポップアップを表示（通知用途）
+ */
+function showPopupIfInView(content, latLng) {
+    var mapBounds = map.getBounds();
+    if (mapBounds.contains(latLng)) {
+        var popup = new maplibregl.Popup({
+            closeButton: true,
+            autoClose: true,
+            closeOnClick: false,
+            offset: [0, -20],
+            className: 'custom-popup'
+        })
+            .setLngLat(latLng)
+            .setHTML(content)
+            .addTo(map);
+
+        setTimeout(() => {
+            popup.remove();
+        }, 3000);
+    }
+}
+
+/**
+ * デモ用：現在の表示範囲にランダムで複数スタート点を発生させる
+ * ここでは addTo(map) しているためスタートマーカーが表示される（デモなのでOK）
+ */
+function populateRandomPoints() {
+    var bounds = map.getBounds();
+    var latMin = bounds.getSouthWest().lat;
+    var latMax = bounds.getNorthEast().lat;
+    var lngMin = bounds.getSouthWest().lng;
+    var lngMax = bounds.getNorthEast().lng;
+
+    for (var i = 0; i < 10; i++) {
+        var lat = Math.random() * (latMax - latMin) + latMin;
+        var lng = Math.random() * (lngMax - lngMin) + lngMin;
+        var startLatLng = { lat: lat, lng: lng };
+        var startMarker = createStandardMarker(startLatLng.lng, startLatLng.lat);
+        startMarker.addTo(map); // ← デモ表示用。通常運用では外して非表示にする
+        fetchNearestEvacuationPoints(startLatLng, startMarker);
+    }
+}
+
+/**
+ * 2点間のハーサイン距離（m）
+ */
+function distance(latlng1, latlng2) {
+    var R = 6371e3; // 地球半径[m]
+    var φ1 = latlng1[1] * Math.PI / 180;
+    var φ2 = latlng2[1] * Math.PI / 180;
+    var Δφ = (latlng2[1] - latlng1[1]) * Math.PI / 180;
+    var Δλ = (latlng2[0] - latlng1[0]) * Math.PI / 180;
+
+    var a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    var d = R * c;
+    return d;
+}
+
+// 初期化時にデフォルト選択（一般の人）
+updateButtonSelection('person');
