@@ -7,11 +7,11 @@ const map = new maplibregl.Map({
     container: 'map',
     style: 'std_1.json',
     // style: 'https://tile2.openstreetmap.jp/styles/osm-bright/style.json',
-    center: [134.40267, 34.73987],
-    zoom: 14.55,
+    center: [131.674191, 32.589373],
+    zoom: 16.57,
     minZoom: 1,
     maxZoom: 23,
-    pitch: 60,
+    pitch: 65,
     maxPitch: 85,
     bearing: 0,
     hash: true,
@@ -80,7 +80,7 @@ map.addControl(new maplibregl.ScaleControl({
 // Attributionを折りたたみ表示
 map.addControl(new maplibregl.AttributionControl({
     compact: true,
-    customAttribution: '（<a href="https://twitter.com/shi__works" target="_blank">X(旧Twitter)</a> | <a href="https://github.com/shiwaku/japan-hazard-map-on-maplibre" target="_blank">GitHub</a>） '
+    customAttribution: '<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a> | <a href="https://twitter.com/shi__works" target="_blank">X(旧Twitter)</a> | <a href="https://github.com/shiwaku/japan-hazard-map-on-maplibre" target="_blank">GitHub</a> '
 }));
 
 // 3D地形コントロール
@@ -1157,10 +1157,10 @@ function createStandardMarker(lng, lat) {
 async function fetchNearestEvacuationPoints(latlng, startMarker) {
     const url = new URL('https://wapi.bodik.jp/evacuation_space');
     url.searchParams.set('select_type', 'geometry');
-    url.searchParams.set('maxResults', '10');
+    url.searchParams.set('maxResults', '10'); // 実行結果として返す最大レコード数を指定する
     url.searchParams.set('lat', String(latlng.lat));
     url.searchParams.set('lon', String(latlng.lng));
-    url.searchParams.set('distance', '10000');
+    url.searchParams.set('distance', '10000'); // 緯度経度で指定された場所からの距離をメートルで指定する
 
     try {
         const res = await fetch(url.toString());
@@ -1294,7 +1294,7 @@ function displayRoute(startMarker, shortestRoute) {
         },
         paint: {
             'line-color': color,
-            'line-width': 8
+            'line-width': 5
         }
     });
 
@@ -1344,7 +1344,7 @@ function displayRoute(startMarker, shortestRoute) {
         className: 'custom-popup'
     }).setHTML(
         '<b>到着まで</b><br>あと ' +
-        Math.round(totalDistance) + ' メートル (' +
+        Math.round(totalDistance) + ' m (' +
         formatTime(totalDistance / currentSpeed) + ')'
     );
 
@@ -1397,7 +1397,7 @@ function startWalking(latLngs, walkerMarker, initialColor) {
                     if (walkerMarker.getPopup()) {
                         walkerMarker.getPopup()
                             .setLngLat(currentPosition)
-                            .setHTML('<b>到着まで</b><br>あと ' + Math.round(remainingDistance) + ' メートル (' + formatTime(remainingTime) + ')');
+                            .setHTML('<b>到着まで</b><br>あと ' + Math.round(remainingDistance) + ' m (' + formatTime(remainingTime) + ')');
                     }
 
                     // 100m単位の現在距離（必要なら通知等に使用）
@@ -1443,21 +1443,21 @@ function formatTime(seconds) {
  */
 function getRouteColor(distance) {
     if (distance <= 250) {
-        return 'blue';
+        return '#0000FF';
     } else if (distance <= 500) {
-        return '#3366FF';
+        return '#003FFF';
     } else if (distance <= 750) {
-        return '#6699FF';
+        return '#007FFF';
     } else if (distance <= 1000) {
-        return '#99CCFF';
+        return '#00BFFF';
     } else if (distance <= 1250) {
-        return '#CCFFFF';
+        return '#009800';
     } else if (distance <= 1500) {
-        return '#FFCCCC';
+        return '#FFBF00';
     } else if (distance <= 1750) {
-        return '#FF9999';
+        return '#FF0000';
     } else if (distance <= 2000) {
-        return '#FF6666';
+        return '#FF00FF';
     } else {
         return 'red';
     }

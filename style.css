@@ -258,14 +258,34 @@
             border-radius: 5px;
         }
 
-        .osm-credit {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(255, 255, 255, 0.8);
-            padding: 5px;
-            border-radius: 5px;
-            font-size: 12px;
-            z-index: 2;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        .control-panel,
+        .control-panel button {
+            color: #000080;
+        }
+
+        .control-panel,
+        .control-panel button {
+            line-height: 1;
+        }
+
+        .control-panel h4 {
+            font-size: 14px;
+            line-height: 1;
+            margin: 0 0 4px;
+            font-weight: 700;
+            color: #000080;
+            text-align: center;
+        }
+
+        .control-panel button {
+            padding: 6px 8px;
+            margin-bottom: 3px;
+            line-height: 1;
+            font-size: 14px;
+        }
+
+        #carButton,
+        #personButton,
+        #elderlyButton {
+            margin-bottom: 0.2px;
         }
