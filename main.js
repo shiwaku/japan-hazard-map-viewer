@@ -7,8 +7,8 @@ const map = new maplibregl.Map({
     container: 'map',
     style: 'std_1.json',
     // style: 'https://tile2.openstreetmap.jp/styles/osm-bright/style.json',
-    center: [131.674191, 32.589373],
-    zoom: 16.57,
+    center: [131.673877, 32.588641],
+    zoom: 15.5,
     minZoom: 1,
     maxZoom: 23,
     pitch: 65,
@@ -470,8 +470,9 @@ map.on("load", () => {
     // PLATEAU建物（PMTiles）ソース
     map.addSource("plateau-pmtiles", {
         type: "vector",
-        url: "pmtiles://https://shiworks.xsrv.jp/pmtiles-data/plateau/PLATEAU_2022_LOD1.pmtiles",
-        minzoom: 16,
+        // url: "pmtiles://https://shiworks.xsrv.jp/pmtiles-data/plateau/PLATEAU_2022_LOD1.pmtiles",
+        url: "pmtiles://https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/plateau/PLATEAU_2023_LOD0.pmtiles",
+        minzoom: 14,
         maxzoom: 16,
         attribution: '<a href="https://www.geospatial.jp/ckan/dataset/plateau">3D都市モデルPLATEAU建物データ（国土交通省）</a>'
     });
@@ -480,14 +481,16 @@ map.on("load", () => {
     map.addLayer({
         'id': 'plateau-pmtiles',
         'source': 'plateau-pmtiles',
-        'source-layer': "PLATEAU",
+        // 'source-layer': "PLATEAU",
+        'source-layer': "PLATEAU_2023_LOD0",
         "minzoom": 14,
         "maxzoom": 23,
         'type': 'fill-extrusion',
         'paint': {
             "fill-extrusion-color": '#FFFFFF',
             "fill-extrusion-opacity": 1,
-            "fill-extrusion-height": ["get", "measuredHeight"]
+            // "fill-extrusion-height": ["get", "measuredHeight"]
+            "fill-extrusion-height": ["get", "measured_height"]
         }
     });
 
@@ -1153,14 +1156,15 @@ function createStandardMarker(lng, lat) {
 /**
  * BODIK WAPIから近傍の避難場所を取得。
  * 失敗時は地図上の 'hinanbasho' レイヤからフォールバックで最近傍を抽出。
+ * 取得した全属性をコンソールで確認できるようにログ出力を追加。
  */
 async function fetchNearestEvacuationPoints(latlng, startMarker) {
     const url = new URL('https://wapi.bodik.jp/evacuation_space');
-    url.searchParams.set('select_type', 'geometry');
-    url.searchParams.set('maxResults', '10'); // 実行結果として返す最大レコード数を指定する
+    url.searchParams.set('select_type', 'geometry');   // 属性も取得するため data を使用
+    url.searchParams.set('maxResults', '10');      // 最大件数
     url.searchParams.set('lat', String(latlng.lat));
     url.searchParams.set('lon', String(latlng.lng));
-    url.searchParams.set('distance', '10000'); // 緯度経度で指定された場所からの距離をメートルで指定する
+    url.searchParams.set('distance', '10000');     // [m]
 
     try {
         const res = await fetch(url.toString());
@@ -1182,13 +1186,39 @@ async function fetchNearestEvacuationPoints(latlng, startMarker) {
             throw new Error('no features from WAPI');
         }
 
-        // 候補点を [lng,lat] + 属性 に整形
+        // ===== ここから属性確認のためのログ出力 =====
+        console.log('[WAPI] 取得件数:', features.length);
+        console.log('[WAPI] 生 features:', features);
+        // 1行=1レコードの属性一覧
+        console.table(
+            features.map((f, i) => ({ _idx: i + 1, ...(f.properties || {}) }))
+        );
+        // 各要素の詳細
+        features.forEach((f, i) => {
+            console.group(`Feature #${i + 1}`);
+            console.log('geometry:', f.geometry);
+            console.log('properties keys:', Object.keys(f.properties || {}));
+            console.log('properties:', f.properties || {});
+            console.groupEnd();
+        });
+        // 後からコンソールで参照できるように保存
+        window._evacFeatures = features;
+        // ===== ここまでログ出力 =====
+
+        // 候補点を [lng,lat] + 属性 に整形（名称/住所キーを正規化しておくと後段表示が安定）
         const candidates = features
             .filter(f => f && f.geometry && Array.isArray(f.geometry.coordinates))
-            .map(f => ({
-                coordinates: f.geometry.coordinates,     // [lng, lat]
-                properties: f.properties || {}
-            }));
+            .map(f => {
+                const p = f.properties || {};
+                return {
+                    coordinates: f.geometry.coordinates, // [lng, lat]
+                    properties: {
+                        ...p,
+                        name: p.name ?? p['施設・場所名'] ?? p['名称'],
+                        address: p.address ?? p['住所']
+                    }
+                };
+            });
 
         findShortestRoute(startMarker, candidates);
     } catch (err) {
@@ -1206,17 +1236,36 @@ async function fetchNearestEvacuationPoints(latlng, startMarker) {
         const dist = (a, b) => {
             const [lng1, lat1] = a, [lng2, lat2] = b;
             const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
-            const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+            const s =
+                Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(lat1)) *
+                Math.cos(toRad(lat2)) *
+                Math.sin(dLng / 2) ** 2;
             return 2 * R * Math.asin(Math.sqrt(s));
         };
 
-        const candidates = rendered.map(f => ({
-            coordinates: f.geometry.coordinates,
-            properties: f.properties || {}
-        }))
-            .sort((a, b) =>
-                dist([a.coordinates[0], a.coordinates[1]], [latlng.lng, latlng.lat]) -
-                dist([b.coordinates[0], b.coordinates[1]], [latlng.lng, latlng.lat])
+        const candidates = rendered
+            .map(f => {
+                const p = f.properties || {};
+                return {
+                    coordinates: f.geometry.coordinates,
+                    properties: {
+                        ...p,
+                        name: p.name ?? p['施設・場所名'] ?? p['名称'],
+                        address: p.address ?? p['住所']
+                    }
+                };
+            })
+            .sort(
+                (a, b) =>
+                    dist(
+                        [a.coordinates[0], a.coordinates[1]],
+                        [latlng.lng, latlng.lat]
+                    ) -
+                    dist(
+                        [b.coordinates[0], b.coordinates[1]],
+                        [latlng.lng, latlng.lat]
+                    )
             )
             .slice(0, 5);
 
