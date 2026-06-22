@@ -11,9 +11,10 @@ import { renderLegends } from './ui/legend';
 import { setupLayerSwitcher } from './ui/layer-switcher';
 import { registerFeaturePopups } from './popups/feature-popups';
 import { showDepthPopup } from './popups/depth-popup';
-import { setupRoutingControls, routeToNearestShelter } from './routing/evacuation-route';
+// 経路探索（避難経路）機能は現在無効化中。再有効化する場合は以下と後述の呼び出しを復活させる。
+// import { setupRoutingControls, routeToNearestShelter } from './routing/evacuation-route';
 
-/** クリック時にフィーチャポップアップへ委譲するレイヤ（経路探索より優先） */
+/** クリック時にフィーチャポップアップへ委譲するレイヤ */
 const FEATURE_LAYERS = ['hinanbasho', 'denshouhi', '100m_mesh_pop2020_fill'];
 
 function requireElement(id: string): HTMLElement {
@@ -26,7 +27,7 @@ const map = createMap();
 
 // DOM 構築（map load を待たずに生成可）
 renderLegends(requireElement('legends'));
-setupRoutingControls();
+// setupRoutingControls(); // 経路探索 無効化中
 
 map.on('load', async () => {
   // 産総研 シームレス標高タイル（地形）
@@ -48,14 +49,13 @@ map.on('load', async () => {
   setupLayerSwitcher(map, requireElement('layer-radios'));
   registerFeaturePopups(map);
 
-  // 地図クリック: フィーチャ上なら各ポップアップに委譲。
-  // それ以外は浸水深ポップアップ表示＋最寄り避難所への経路探索。
+  // 地図クリック: フィーチャ上なら各ポップアップに委譲。それ以外は浸水深ポップアップを表示。
   map.on('click', (e) => {
     const onFeature = map
       .queryRenderedFeatures(e.point)
       .some((f) => FEATURE_LAYERS.includes(f.layer.id));
     if (onFeature) return;
     void showDepthPopup(map, e.lngLat);
-    void routeToNearestShelter(map, e.lngLat);
+    // void routeToNearestShelter(map, e.lngLat); // 経路探索 無効化中
   });
 });
