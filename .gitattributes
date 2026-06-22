@@ -1,0 +1,9 @@
+# 改行コードをLFに統一（Windows/WSL混在による差分churnを防ぐ）
+* text=auto eol=lf
+
+# バイナリ
+*.png binary
+*.gif binary
+*.jpg binary
+*.jpeg binary
+*.pmtiles binary

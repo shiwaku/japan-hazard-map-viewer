@@ -1,310 +1,46 @@
-<html>
-
-<head>
-    <title>全国ハザードマップ</title>
+<!doctype html>
+<html lang="ja">
+  <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js'></script>
-    <link href='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css' rel='stylesheet' />
-    <script src="https://unpkg.com/@maplibre/maplibre-gl-geocoder@1.2.0/dist/maplibre-gl-geocoder.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/@maplibre/maplibre-gl-geocoder@1.2.0/dist/maplibre-gl-geocoder.css"
-        type="text/css" />
-    <script src="https://unpkg.com/pmtiles@2.11.0/dist/index.js"></script>
-    <script src="https://unpkg.com/@mapbox/polyline@1.1.1/src/polyline.js"></script>
-    <link href="style.css" rel="stylesheet" />
-</head>
-
-<body>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>全国ハザードマップ</title>
+  </head>
+  <body>
     <div id="map"></div>
-    <div id="info">
-        <details>
-            <summary class="yubi">
-                <strong>ハザードマップの種類</strong>
-            </summary>
-            <fieldset>
-                <div class="radio-button-container">
-                    <div class="column">
-                        <div>
-                            <input type="radio" id="flood_l2_shinsuishin" name="layer" value="flood_l2_shinsuishin"
-                                checked>
-                            <label for="flood_l2_shinsuishin">洪水浸水想定区域（想定最大規模）</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="flood_l1_shinsuishin" name="layer" value="flood_l1_shinsuishin">
-                            <label for="flood_l1_shinsuishin">洪水浸水想定区域（計画規模（現在の凡例））</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="flood_l2_keizoku" name="layer" value="flood_l2_keizoku">
-                            <label for="flood_l2_keizoku">浸水継続時間（想定最大規模）</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="flood_l2_kaokutoukai_hanran" name="layer"
-                                value="flood_l2_kaokutoukai_hanran">
-                            <label for="flood_l2_kaokutoukai_hanran">家屋倒壊等氾濫想定区域（氾濫流）</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="flood_l2_kaokutoukai_kagan" name="layer"
-                                value="flood_l2_kaokutoukai_kagan">
-                            <label for="flood_l2_kaokutoukai_kagan">家屋倒壊等氾濫想定区域（河岸侵食）</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="dosekiryukeikaikuiki" name="layer" value="dosekiryukeikaikuiki">
-                            <label for="dosekiryukeikaikuiki">土砂災害警戒区域（土石流）</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="kyukeishakeikaikuiki" name="layer" value="kyukeishakeikaikuiki">
-                            <label for="kyukeishakeikaikuiki">土砂災害警戒区域（急傾斜地の崩壊）</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="jisuberikeikaikuiki" name="layer" value="jisuberikeikaikuiki">
-                            <label for="jisuberikeikaikuiki">土砂災害警戒区域（地すべり）</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="dosekiryukikenkeiryu" name="layer" value="dosekiryukikenkeiryu">
-                            <label for="dosekiryukikenkeiryu">土石流危険渓流</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="kyukeisyachihoukai" name="layer" value="kyukeisyachihoukai">
-                            <label for="kyukeisyachihoukai">急傾斜地崩壊危険箇所</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="jisuberikikenkasyo" name="layer" value="jisuberikikenkasyo">
-                            <label for="jisuberikikenkasyo">地すべり危険箇所</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="nadarekikenkasyo" name="layer" value="nadarekikenkasyo">
-                            <label for="nadarekikenkasyo">雪崩危険箇所</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="hightide_l2_shinsuishin" name="layer"
-                                value="hightide_l2_shinsuishin">
-                            <label for="hightide_l2_shinsuishin">高潮浸水想定区域</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="tsunami_newlegend" name="layer" value="tsunami_newlegend">
-                            <label for="tsunami_newlegend">津波浸水想定</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="naisui_data" name="layer" value="naisui_data">
-                            <label for="naisui_data">内水（雨水出水）浸水想定区域(一部の地域のみ)</label>
-                        </div>
-                        <div>
-                            <input type="checkbox" id="pop-map" value="pop-map">
-                            <label for="pop-map">令和2年100mﾒｯｼｭ人口</label>
-                        </div>
-                    </div>
-                </div>
-            </fieldset>
-        </details>
-    </div>
-    <div class="map-overlay top">
-        <div class="map-overlay-inner">
-            <label>ハザードマップ 不透明度: <span id="slider-opacity-value">80%</span></label>
-            <input id="slider-opacity" type="range" min="0" max="100" step="0" value="80">
-        </div>
-    </div>
-    <div id="legend-flood_l2_shinsuishin" style="display:block;" class='legend'>
-        <h4>洪水浸水想定区域<br>(想定最大規模)</h4>
-        <div class="square" style='background-color: rgb(220, 122, 220); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">20.0m以上</span><br>
-        <div class="square" style='background-color: rgb(242, 133, 201); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">10.0 ～ 20.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 145, 145); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">5.0 ～ 10.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 183, 183); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">3.0 ～ 5.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 216, 192); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.5 ～ 3.0m</span><br>
-        <div class="square" style='background-color: rgb(247, 245, 169); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.5m未満</span><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-flood_l1_shinsuishin" style="display:none;" class='legend'>
-        <h4>洪水浸水想定区域<br>(計画規模(現在の凡例))</h4>
-        <div class="square" style='background-color: rgb(220, 122, 220); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">20.0m以上</span><br>
-        <div class="square" style='background-color: rgb(242, 133, 201); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">10.0 ～ 20.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 145, 145); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">5.0 ～ 10.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 183, 183); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">3.0 ～ 5.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 216, 192); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.5 ～ 3.0m</span><br>
-        <div class="square" style='background-color: rgb(247, 245, 169); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.5m未満</span><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-flood_l2_keizoku" style="display:none;" class='legend'>
-        <h4>浸水継続時間<br>(想定最大規模)</h4>
-        <div class="square" style='background-color: rgb(160, 210, 255); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">12時間未満</span><br>
-        <div class="square" style='background-color: rgb(0, 65, 255); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">12時間 ～ 1日未満</span><br>
-        <div class="square" style='background-color: rgb(250, 245, 0); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">1日 ～ 3日未満</span><br>
-        <div class="square" style='background-color: rgb(255, 153, 0); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">3日 ～ 1週間未満</span><br>
-        <div class="square" style='background-color: rgb(255, 40, 0); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">1週間 ～ 2週間未満</span><br>
-        <div class="square" style='background-color: rgb(180, 0, 104); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">2週間 ～ 4週間未満</span><br>
-        <div class="square" style='background-color: rgb(96, 0, 96); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">4週間以上</span><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-flood_l2_kaokutoukai_hanran" style="display:none;" class='legend'>
-        <h4>家屋倒壊等氾濫想定区域<br>(氾濫流)</h4>
-        <div class="image-hanran"></div><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-flood_l2_kaokutoukai_kagan" style="display:none;" class='legend'>
-        <h4>家屋倒壊等氾濫想定区域<br>(河岸侵食)</h4>
-        <div class="image-kagan"></div><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-dosekiryukeikaikuiki" style="display:none;" class='legend'>
-        <h4>土砂災害警戒区域<br>(土石流)</h4>
-        <div class="square" style='background-color: rgb(165, 0, 33); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">特別警戒区域</span><br>
-        <div class="square" style='background-color: rgb(230, 200, 50); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">警戒区域</span><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-kyukeishakeikaikuiki" style="display:none;" class='legend'>
-        <h4>土砂災害警戒区域<br>(急傾斜地の崩壊)</h4>
-        <div class="square" style='background-color: rgb(250, 40, 0); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">特別警戒区域</span><br>
-        <div class="square" style='background-color: rgb(250, 230, 0); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">警戒区域</span><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-jisuberikeikaikuiki" style="display:none;" class='legend'>
-        <h4>土砂災害警戒区域<br>(地すべり)</h4>
-        <div class="square" style='background-color: rgb(202, 76, 149); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">特別警戒区域</span><br>
-        <div class="square" style='background-color: rgb(255, 183, 76); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">警戒区域</span><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-dosekiryukikenkeiryu" style="display:none;" class='legend'>
-        <div class="square" style='background-color: rgb(242, 136, 76); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">土石流危険渓流</span><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-kyukeisyachihoukai" style="display:none;" class='legend'>
-        <div class="square" style='background-color: rgb(218, 218, 254); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">急傾斜地崩壊危険箇所</span><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-jisuberikikenkasyo" style="display:none;" class='legend'>
-        <div class="square" style='background-color: rgb(254, 230, 218); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">地すべり危険箇所</span><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    </div>
-    <div id="legend-nadarekikenkasyo" style="display:none;" class='legend'>
-        <div class="square" style='background-color: rgb(254, 254, 76); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">雪崩危険箇所</span><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-hightide_l2_shinsuishin" style="display:none;" class='legend'>
-        <h4>高潮浸水想定区域</h4>
-        <div class="square" style='background-color: rgb(220, 122, 188); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">20.0m以上</span><br>
-        <div class="square" style='background-color: rgb(242, 133, 201); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">10.0 ～ 20.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 145, 145); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">5.0 ～ 10.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 183, 183); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">3.0 ～ 5.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 216, 192); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">1.0 ～ 3.0m</span><br>
-        <div class="square" style='background-color: rgb(248, 225, 166); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.5 ～ 1.0m</span><br>
-        <div class="square" style='background-color: rgb(247, 245, 169); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.3 ～ 0.5m</span><br>
-        <div class="square" style='background-color: rgb(255, 255, 179); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.3m未満</span><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-tsunami_newlegend" style="display:none;" class='legend'>
-        <h4>津波浸水想定</h4>
-        <div class="square" style='background-color: rgb(220, 122, 188); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">20.0m以上</span><br>
-        <div class="square" style='background-color: rgb(242, 133, 201); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">10.0 ～ 20.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 145, 145); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">5.0 ～ 10.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 183, 183); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">3.0 ～ 5.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 216, 192); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">1.0 ～ 3.0m</span><br>
-        <div class="square" style='background-color: rgb(248, 225, 166); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.5 ～ 1.0m</span><br>
-        <div class="square" style='background-color: rgb(247, 245, 169); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.3 ～ 0.5m</span><br>
-        <div class="square" style='background-color: rgb(255, 255, 179); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.3m未満</span><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-naisui_data" style="display:none;" class='legend'>
-        <h4>内水（雨水出水）浸水想定区域</h4>
-        <div class="square" style='background-color: rgb(220, 122, 220); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">20.0m以上</span><br>
-        <div class="square" style='background-color: rgb(242, 133, 201); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">10.0 ～ 20.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 145, 145); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">5.0 ～ 10.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 183, 183); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">3.0 ～ 5.0m</span><br>
-        <div class="square" style='background-color: rgb(255, 216, 192); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.5 ～ 3.0m</span><br>
-        <div class="square" style='background-color: rgb(248, 225, 166); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.5 ～ 1.0m</span><br>
-        <div class="square" style='background-color: rgb(247, 245, 169); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.1 ～ 0.5m</span><br>
-        <div class="square" style='background-color: rgb(255, 255, 179); display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">0.1 ～ 0.3m</span><br>
-        <div><img src="./img/location-pin.png" alt="指定緊急避難場所" style="width:20px; height:20px;" />指定緊急避難場所</div>
-        <div><img src="./img/location-pin2_red.png" alt="自然災害伝承碑" style="width:20px; height:20px;" />自然災害伝承碑</div>
-    </div>
-    <div id="legend-pop" style="display:none;" class='legend-pop'>
-        <h4>人口(100mﾒｯｼｭ)</h4>
-        <div class="square" style='background-color: #0000FF; display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">～10人未満</span><br>
-        <div class="square" style='background-color: #00FFFF; display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">10～20人未満</span><br>
-        <div class="square" style='background-color: #00FF00; display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">20～40人未満</span><br>
-        <div class="square" style='background-color: #FFBF00; display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">40～60人未満</span><br>
-        <div class="square" style='background-color: #FF0000; display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">60～80人未満</span><br>
-        <div class="square" style='background-color: #CB00CB; display: inline-block;'>
-        </div><span style="display: inline-block; margin-left: 5px;">80人以上</span><br>
-    </div>
-    <div class="control-panel">
-        <h4>避難経路</h4>
-        <button id="carButton" onclick="setSpeed('car', 10)">自動車</button>
-        <button id="personButton" onclick="setSpeed('person', 4)">一般の人</button>
-        <button id="elderlyButton" onclick="setSpeed('elderly', 2)">高齢者</button>
-    </div>
-    <script type="module" src="main.js"></script>
-</body>
 
+    <!-- ハザードマップ種別の選択（ラジオは layer-switcher が生成） -->
+    <div id="info">
+      <details>
+        <summary class="yubi"><strong>ハザードマップの種類</strong></summary>
+        <fieldset>
+          <div class="radio-button-container">
+            <div class="column" id="layer-radios"></div>
+          </div>
+        </fieldset>
+      </details>
+    </div>
+
+    <!-- 不透明度スライダー -->
+    <div class="map-overlay top">
+      <div class="map-overlay-inner">
+        <label>ハザードマップ 不透明度: <span id="slider-opacity-value">80%</span></label>
+        <input id="slider-opacity" type="range" min="0" max="100" step="1" value="80" />
+      </div>
+    </div>
+
+    <!-- 凡例（legend が生成） -->
+    <div id="legends"></div>
+
+    <!-- 避難経路の速度プロファイル（経路探索 無効化中） -->
+    <!--
+    <div class="control-panel">
+      <h4>避難経路</h4>
+      <button id="carButton" type="button">自動車</button>
+      <button id="personButton" type="button">一般の人</button>
+      <button id="elderlyButton" type="button">高齢者</button>
+    </div>
+    -->
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>

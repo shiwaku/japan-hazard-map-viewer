@@ -1,0 +1,266 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+#map {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+}
+
+.map-overlay {
+  font:
+    bold 12px/20px 'Helvetica Neue',
+    Arial,
+    Helvetica,
+    sans-serif;
+  position: absolute;
+  width: 200px;
+  bottom: 20px;
+  left: 0px;
+  padding: 10px;
+}
+
+.map-overlay .map-overlay-inner {
+  background-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.map-overlay label {
+  display: block;
+  margin: 0 0 5px;
+  font-size: 12px;
+}
+
+.map-overlay input {
+  background-color: transparent;
+  display: inline-block;
+  width: 100%;
+  position: relative;
+  margin: 0;
+  cursor: ew-resize;
+}
+
+.maplibregl-popup .maplibregl-popup-content {
+  padding: 8px 10px;
+  font:
+    12px/14px Arial,
+    Helvetica,
+    sans-serif;
+  color: black;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+  border-radius: 5px;
+  width: 200px;
+  height: auto;
+}
+
+.custom-100m-mesh-pop2020-popup .maplibregl-popup-content {
+  padding: 8px 10px;
+  font:
+    12px/14px Arial,
+    Helvetica,
+    sans-serif;
+  color: black;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.9);
+  border-radius: 5px;
+  width: 280px;
+  height: 220px;
+}
+
+.custom-100m-mesh-pop2020-popup .maplibregl-popup-content .pop-info th {
+  width: 100px;
+}
+
+.custom-100m-mesh-pop2020-popup .maplibregl-popup-content .pop-info td:nth-child(1) {
+  text-align: right;
+  width: 100px;
+  white-space: nowrap;
+}
+
+.custom-100m-mesh-pop2020-popup .maplibregl-popup-content .pop-info td:nth-child(2) {
+  text-align: left;
+  width: 150px;
+  white-space: nowrap;
+}
+
+.custom-100m-mesh-pop2020-popup .maplibregl-popup-content .pop-info b {
+  text-align: right;
+}
+
+.custom-100m-mesh-pop2020-popup .maplibregl-popup-content .pop-info,
+.custom-100m-mesh-pop2020-popup .maplibregl-popup-content .pop-info th,
+.custom-100m-mesh-pop2020-popup .maplibregl-popup-content .pop-info td {
+  font:
+    12px/14px Arial,
+    Helvetica,
+    sans-serif;
+}
+
+.maplibregl-ctrl-geocoder {
+  font-size: 12px;
+  line-height: 12px;
+  font-family: 'Open Sans', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  position: relative;
+  background-color: #fff;
+  width: 80%;
+  min-width: 100px;
+  z-index: 1;
+  border-radius: 5px;
+  transition:
+    width 0.25s,
+    min-width 0.25s;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+.maplibregl-ctrl-geocoder .suggestions {
+  font-size: 12px;
+}
+
+#info {
+  padding: 6px 8px;
+  font:
+    12px/14px Arial,
+    Helvetica,
+    sans-serif;
+  color: navy;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  width: fit-content;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+}
+
+.yubi {
+  cursor: pointer;
+  z-index: 2;
+}
+
+.radio-button-container {
+  display: flex;
+  justify-content: start;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  margin-right: 20px;
+}
+
+.legend {
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 3px;
+  bottom: 40px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font:
+    12px/14px 'Helvetica Neue',
+    Arial,
+    Helvetica,
+    sans-serif;
+  padding: 10px;
+  position: absolute;
+  right: 10px;
+  z-index: 1;
+  line-height: 20px;
+  height: auto;
+}
+
+.legend h4 {
+  margin: 0 0 10px;
+}
+
+.square {
+  width: 15px;
+  height: 15px;
+}
+
+.legend-pop {
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font:
+    12px/14px 'Helvetica Neue',
+    Arial,
+    Helvetica,
+    sans-serif;
+  padding: 10px;
+  position: absolute;
+  bottom: 110px;
+  left: 10px;
+  z-index: 1;
+  line-height: 20px;
+  height: auto;
+}
+
+.legend-pop h4 {
+  margin: 0 0 10px;
+}
+
+.legend-pop .square {
+  width: 15px;
+  height: 15px;
+}
+
+.custom-popup .maplibregl-popup-content {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 7px;
+  padding: 9px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+.control-panel {
+  position: absolute;
+  bottom: 105px;
+  left: 10px;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 7px;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  color: #000080;
+  line-height: 1;
+}
+
+.control-panel h4 {
+  font-size: 14px;
+  line-height: 1;
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: #000080;
+  text-align: center;
+}
+
+.control-panel button {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 2px solid transparent;
+  padding: 6px 8px;
+  margin-bottom: 3px;
+  cursor: pointer;
+  transition: border 0.3s;
+  color: #000080;
+  line-height: 1;
+  font-size: 14px;
+}
+
+.control-panel button.selected {
+  border: 2px solid red;
+  border-radius: 5px;
+}
+
+#carButton,
+#personButton,
+#elderlyButton {
+  margin-bottom: 0.2px;
+}
