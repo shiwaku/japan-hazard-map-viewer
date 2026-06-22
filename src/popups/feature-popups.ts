@@ -50,7 +50,7 @@ export function registerFeaturePopups(map: MlMap): void {
           `<div class="popup-row"><span class="popup-key">指定避難所との住所同一</span> ${chofuku}</div>` +
           `<div class="popup-note">※最新かつ詳細の状況などは必ず当該市町村にご確認ください。</div>` +
           `<div class="popup-actions">${googleMapsLink(lat, lng)}` +
-          `<a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html" target="_blank">制度について</a></div>`,
+          `<a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html" target="_blank">「指定緊急避難場所」について</a></div>`,
       )
       .addTo(map);
   });
