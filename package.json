@@ -1,0 +1,31 @@
+{
+  "name": "japan-hazard-map-on-maplibre",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "全国ハザードマップ on MapLibre GL JS",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@mapbox/polyline": "^1.2.1",
+    "@maplibre/maplibre-gl-geocoder": "^1.9.4",
+    "maplibre-gl": "^5.24.0",
+    "pmtiles": "^4.4.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/mapbox__polyline": "^1.0.5",
+    "eslint": "^10.5.0",
+    "eslint-config-prettier": "^10.0.0",
+    "prettier": "^3.8.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1",
+    "vite": "^8.0.16"
+  }
+}
