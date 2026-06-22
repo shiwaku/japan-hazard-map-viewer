@@ -18,16 +18,23 @@ export function setupOpacitySlider(map: MlMap, getActiveLayerId: () => string): 
     throw new Error('不透明度スライダーの要素が見つかりません');
   }
 
+  // つまみより左側を塗る（CSS の --_fill）。値表示も更新。
+  const render = () => {
+    valueLabel.textContent = `${slider.value}%`;
+    slider.style.setProperty('--_fill', `${slider.value}%`);
+  };
+
   slider.addEventListener('input', () => {
     map.setPaintProperty(getActiveLayerId(), 'raster-opacity', parseInt(slider.value, 10) / 100);
-    valueLabel.textContent = `${slider.value}%`;
+    render();
   });
+
+  render(); // 初期表示
 
   return {
     reset() {
-      const pct = String(Math.round(HAZARD_OPACITY * 100));
-      slider.value = pct;
-      valueLabel.textContent = `${pct}%`;
+      slider.value = String(Math.round(HAZARD_OPACITY * 100));
+      render();
     },
   };
 }
