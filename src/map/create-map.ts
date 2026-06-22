@@ -77,7 +77,8 @@ export function createMap(): maplibregl.Map {
       showUserLocation: true,
     }),
   );
-  map.addControl(new maplibregl.ScaleControl({ maxWidth: 200, unit: 'metric' }));
+  // スケールバーは右下へ（左下の不透明度スライダーとの重なりを回避）
+  map.addControl(new maplibregl.ScaleControl({ maxWidth: 200, unit: 'metric' }), 'bottom-right');
   map.addControl(
     new maplibregl.AttributionControl({ compact: true, customAttribution: ATTRIBUTION }),
   );
