@@ -24,6 +24,10 @@ export async function showDepthPopup(map: MlMap, lngLat: LngLat): Promise<void> 
 
   new maplibregl.Popup()
     .setLngLat(lngLat)
-    .setHTML(`<p>${def.depth.description}<br><b>${result}</b><br>${gmap}</p>`)
+    .setHTML(
+      `<div class="popup-note" style="margin:0 0 4px;">${def.depth.description}</div>` +
+        `<div class="popup-title" style="margin:0;">${result}</div>` +
+        `<div class="popup-actions">${gmap}</div>`,
+    )
     .addTo(map);
 }

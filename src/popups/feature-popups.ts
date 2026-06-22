@@ -44,13 +44,13 @@ export function registerFeaturePopups(map: MlMap): void {
     new maplibregl.Popup()
       .setLngLat(e.lngLat)
       .setHTML(
-        `<b><big><span style="color:#009800;">${p['施設・場所名'] ?? ''}</span></big></b><br>` +
-          `住所: ${p['住所'] ?? ''}<br>` +
-          `${googleMapsLink(lat, lng)}<br><br>` +
-          `<b><big>対応している災害の種別</big></b><br>${matched}<br><br>` +
-          `指定避難所との住所同一: ${chofuku}<br><br>` +
-          `<b>※最新かつ詳細の状況などは必ず当該市町村にご確認ください。</b><br>` +
-          `<a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html" target="_blank">「指定緊急避難場所」について</a>`,
+        `<div class="popup-title" style="color:#0f9d58;">${p['施設・場所名'] ?? ''}</div>` +
+          `<div class="popup-row"><span class="popup-key">住所</span> ${p['住所'] ?? ''}</div>` +
+          `<div class="popup-row"><span class="popup-key">対応する災害種別</span> ${matched || '-'}</div>` +
+          `<div class="popup-row"><span class="popup-key">指定避難所との住所同一</span> ${chofuku}</div>` +
+          `<div class="popup-note">※最新かつ詳細の状況などは必ず当該市町村にご確認ください。</div>` +
+          `<div class="popup-actions">${googleMapsLink(lat, lng)}` +
+          `<a href="https://www.gsi.go.jp/bousaichiri/hinanbasho.html" target="_blank">制度について</a></div>`,
       )
       .addTo(map);
   });
@@ -70,22 +70,22 @@ export function registerFeaturePopups(map: MlMap): void {
     else if (await imageExists(`${base}.JPG`)) imgURL = `${base}.JPG`;
 
     const row = (label: string, value: unknown) =>
-      `<div style="border-bottom:1px solid #000;">${label}: ${value ?? ''}</div>`;
+      `<div class="popup-row"><span class="popup-key">${label}</span> ${value ?? ''}</div>`;
 
     new maplibregl.Popup()
       .setLngLat(e.lngLat)
       .setHTML(
-        `<div style="border-bottom:1px solid #000; font-size: 1.2em; color: red;"><strong>碑名: ${p['碑名'] ?? ''}</strong></div>` +
+        `<div class="popup-title" style="color:#dc2626;">碑名: ${p['碑名'] ?? ''}</div>` +
           row('建立年', p['建立年']) +
           row('所在地', p['所在地']) +
           row('災害名', p['災害名']) +
           row('災害種別', p['災害種別']) +
           row('伝承内容', p['伝承内容']) +
           (imgURL
-            ? `<div><a href="${imgURL}" target="_blank"><img src="${imgURL}" alt="画像" style="width: 100%; height: auto;"></a></div>`
+            ? `<a class="popup-photo" href="${imgURL}" target="_blank"><img src="${imgURL}" alt="画像" /></a>`
             : '') +
           row('ID', id) +
-          `<div>${googleMapsLink(lat, lng)}</div>`,
+          `<div class="popup-actions">${googleMapsLink(lat, lng)}</div>`,
       )
       .addTo(map);
   });
@@ -103,8 +103,8 @@ export function registerFeaturePopups(map: MlMap): void {
     new maplibregl.Popup({ className: 'custom-100m-mesh-pop2020-popup' })
       .setLngLat(e.lngLat)
       .setHTML(
-        `<div style="font-size: 1.2em; color: #0065CB;"><strong>簡易100mメッシュ人口</strong></div>` +
-          `<div style="font-size: 1.2em; color: #0065CB;"><strong>(2020年国勢調査ベース)</strong></div>` +
+        `<div class="popup-title" style="color:#0065cb;">簡易100mメッシュ人口` +
+          `<br><span style="font-weight:600;font-size:11px;">(2020年国勢調査ベース)</span></div>` +
           `<table class="pop-info">` +
           popRow('メッシュコード', p['MESH_CODE']) +
           popRow('総人口', `${p['PopT'] ?? ''}人`) +
@@ -114,8 +114,8 @@ export function registerFeaturePopups(map: MlMap): void {
           popRow('75歳以上人口', `${p['Pop75over'] ?? ''}人`) +
           popRow('85歳以上人口', `${p['Pop85over'] ?? ''}人`) +
           `</table>` +
-          `※このデータは、簡易な方法で人口を按分したものであり、当該100mメッシュの実際の人口を示しているものではありません。<br>` +
-          `${googleMapsLink(lat, lng)} ${streetViewLink(lat, lng)}`,
+          `<div class="popup-note">※このデータは、簡易な方法で人口を按分したものであり、当該100mメッシュの実際の人口を示しているものではありません。</div>` +
+          `<div class="popup-actions">${googleMapsLink(lat, lng)}${streetViewLink(lat, lng)}</div>`,
       )
       .addTo(map);
   });
