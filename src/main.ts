@@ -6,10 +6,14 @@ import { getBasemapStyle, type Basemap } from './map/basemap';
 import { attributionControl, createMap, PITCH_3D } from './map/create-map';
 import { HAZARD_LAYERS, HAZARD_OPACITY, type HazardLayerDef } from './config/hazard-layers';
 import { initialOverlayState, OVERLAYS, type OverlayKey } from './config/overlays';
-import { ensureHazardLayer, removeOtherHazardLayers } from './layers/hazard-layers';
+import { ensureHazardLayer, removeHazardLayer } from './layers/hazard-layers';
 import { addPlateauLayer } from './layers/plateau';
 import { addPopulationLayer } from './layers/population';
-import { addEvacuationPointLayers, setHinanbashoFilter } from './layers/evacuation-points';
+import {
+  addEvacuationPointLayers,
+  hinanbashoFilter,
+  setHinanbashoFilter,
+} from './layers/evacuation-points';
 import { setTerrainEnabled } from './layers/terrain';
 import { buildPanel, collapsePanel, type PanelState, type PitchMode } from './ui/panel';
 import { BasemapControl } from './ui/basemap-control';
@@ -30,13 +34,21 @@ const OWN_LAYERS = new Set<string>([
 const isMobile = window.matchMedia('(max-width: 640px)').matches;
 
 const state: PanelState = {
-  hazardId: HAZARD_LAYERS[0].id,
+  // 初期表示は洪水（想定最大規模）のみ。トグルで何枚でも重ねられる。
+  hazards: { [HAZARD_LAYERS[0].id]: true },
   hazardOpacity: {},
   overlays: initialOverlayState(),
   pitch: '3d',
   theme: initialTheme(),
 };
 let base: Basemap = 'pale';
+// 地形の ON/OFF は右上の TerrainControl が持つ。背景/テーマ切替で消えるため、
+// 直前の状態をここに控えて再構築時に復元する。
+let terrainOn = true;
+// スタイル適用中は MapLibre 自身も terrain を落とす（'terrain' イベントが null で飛ぶ）。
+// これを利用者の操作と取り違えないよう、その間はイベントを無視する。
+// 初期スタイルの読み込み中も同じなので true から始める。
+let styleReloading = true;
 
 applyThemeAttr(state.theme);
 
@@ -58,6 +70,8 @@ const defOf = (id: string): HazardLayerDef =>
   HAZARD_LAYERS.find((d) => d.id === id) ?? HAZARD_LAYERS[0];
 const opacityOf = (id: string): number => state.hazardOpacity[id] ?? HAZARD_OPACITY;
 const layersOf = (key: OverlayKey): string[] => OVERLAYS.find((o) => o.key === key)?.layers ?? [];
+/** 表示中のハザード（config の並び順＝重ね順。後ろほど前面） */
+const activeHazards = (): HazardLayerDef[] => HAZARD_LAYERS.filter((d) => state.hazards[d.id]);
 
 /**
  * 背景スタイルの最初の地名ラベル（symbol）レイヤID。
@@ -70,24 +84,53 @@ function labelBeforeId(): string | undefined {
   return undefined;
 }
 
+/** ハザードより上に置くレイヤー（人口→3D建物→地名ラベル）のうち、最も下のもの */
+function overlayFloorId(): string | undefined {
+  for (const id of ['100m_mesh_pop2020_fill', 'plateau-pmtiles']) {
+    if (map.getLayer(id)) return id;
+  }
+  return labelBeforeId();
+}
+
+/**
+ * def を挿入すべき位置（このレイヤーの直下に入る）。
+ * HAZARD_LAYERS の後ろにあるレイヤーほど前面になるよう、
+ * 自分より後ろで既に地図に載っている最初のハザードの手前に入れる。
+ */
+function hazardBeforeId(def: HazardLayerDef): string | undefined {
+  const i = HAZARD_LAYERS.indexOf(def);
+  for (let j = i + 1; j < HAZARD_LAYERS.length; j++) {
+    if (map.getLayer(HAZARD_LAYERS[j].id)) return HAZARD_LAYERS[j].id;
+  }
+  return overlayFloorId();
+}
+
+/** 表示中のハザードすべてに対応する避難場所だけを残すフィルタを適用する */
+function syncShelterFilter(): void {
+  setHinanbashoFilter(map, hinanbashoFilter(activeHazards().map((d) => d.hinanbashoProperty)));
+}
+
 /**
  * データ層をすべて現在の state に合わせて貼る（idempotent）。
  * 初回 load・背景/テーマ切替後・WebGL コンテキスト復帰後に呼ぶ。
  */
-async function buildLayers(): Promise<void> {
-  const def = defOf(state.hazardId);
+function buildLayers(): void {
   const before = labelBeforeId();
 
-  ensureHazardLayer(map, def, opacityOf(def.id), before);
-  removeOtherHazardLayers(map, def.id);
+  // 人口・3D建物を先に置き、ハザードはその下（overlayFloorId の手前）へ順に積む
   addPopulationLayer(map, state.overlays.pop, before);
   addPlateauLayer(map, state.overlays.plateau, state.theme, before);
-  setTerrainEnabled(map, state.overlays.terrain);
-  // ピン（避難場所・伝承碑）は常に最前面。アイコン読込が非同期なので最後に await
-  await addEvacuationPointLayers(
+  for (const def of HAZARD_LAYERS) {
+    if (state.hazards[def.id]) ensureHazardLayer(map, def, opacityOf(def.id), hazardBeforeId(def));
+    else removeHazardLayer(map, def);
+  }
+  setTerrainEnabled(map, terrainOn);
+
+  // ピン（避難場所・伝承碑）は常に最前面なので最後に追加する
+  addEvacuationPointLayers(
     map,
     { hinanbasho: state.overlays.hinanbasho, denshouhi: state.overlays.denshouhi },
-    def.hinanbashoProperty,
+    hinanbashoFilter(activeHazards().map((d) => d.hinanbashoProperty)),
   );
 }
 
@@ -98,8 +141,14 @@ async function buildLayers(): Promise<void> {
  * 新スタイルの描画が落ち着く idle を待ってからデータ層を再追加する。
  */
 function reloadStyle(): void {
+  // setStyle は terrain も落とすので、直前の ON/OFF を控えてから差し替える
+  terrainOn = !!map.getTerrain();
+  styleReloading = true;
   map.setStyle(getBasemapStyle(base, state.theme), { diff: false });
-  map.once('idle', () => void buildLayers());
+  map.once('idle', () => {
+    buildLayers();
+    styleReloading = false;
+  });
 }
 
 function setBase(next: Basemap): void {
@@ -111,21 +160,17 @@ function setBase(next: Basemap): void {
 
 // ---- パネル ----
 const panel = buildPanel(state, {
-  onHazard(id) {
+  onHazard(id, on) {
     const def = defOf(id);
-    ensureHazardLayer(map, def, opacityOf(id), labelBeforeId());
-    removeOtherHazardLayers(map, id);
-    setHinanbashoFilter(map, def.hinanbashoProperty);
+    if (on) ensureHazardLayer(map, def, opacityOf(id), hazardBeforeId(def));
+    else removeHazardLayer(map, def);
+    syncShelterFilter();
   },
   onOpacity(id, value) {
     state.hazardOpacity[id] = value;
     if (map.getLayer(id)) map.setPaintProperty(id, 'raster-opacity', value);
   },
   onOverlay(key, on) {
-    if (key === 'terrain') {
-      setTerrainEnabled(map, on);
-      return;
-    }
     for (const id of layersOf(key)) {
       if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
     }
@@ -147,11 +192,18 @@ map.on('pitchend', () => {
   if (mode !== state.pitch) panel.syncPitch(mode);
 });
 
+// 右上の TerrainControl による切替を控えておく（スタイル再構築時の復元用）。
+// setStyle 中の terrain 消失は状態変更ではないので無視する。
+map.on('terrain', () => {
+  if (!styleReloading) terrainOn = !!map.getTerrain();
+});
+
 if (isMobile) collapsePanel();
 
 // ---- 初期化 ----
 map.on('load', () => {
-  void buildLayers();
+  buildLayers();
+  styleReloading = false;
   registerFeaturePopups(map);
 
   // 地図クリック: フィーチャ上なら各ポップアップに委譲。それ以外は浸水深ポップアップ。
@@ -160,7 +212,7 @@ map.on('load', () => {
       .queryRenderedFeatures(e.point)
       .some((f) => FEATURE_LAYERS.includes(f.layer.id));
     if (onFeature) return;
-    void showDepthPopup(map, e.lngLat, defOf(state.hazardId));
+    void showDepthPopup(map, e.lngLat, activeHazards());
   });
 });
 
@@ -169,14 +221,18 @@ if (buildEl) buildEl.textContent = `build: ${__BUILD_TIME__}`;
 
 initDiag(
   map,
-  () => void buildLayers(),
+  buildLayers,
   () =>
-    `hazard: ${state.hazardId} (${map.getLayer(state.hazardId) ? 'on map' : 'missing'})<br>` +
+    `hazards: ${
+      activeHazards()
+        .map((d) => `${d.id}${map.getLayer(d.id) ? '' : '(missing)'}`)
+        .join(', ') || '(none)'
+    }<br>` +
     `overlays: ${
       OVERLAYS.filter((o) => state.overlays[o.key])
         .map((o) => o.key)
         .join(', ') || '(none)'
-    }`,
+    } · terrain: ${terrainOn}`,
 );
 
 // デバッグ/外部連携用にマップを公開

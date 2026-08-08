@@ -32,9 +32,9 @@ export function hazardLegendHtml(def: HazardLayerDef): string {
 export function overlayLegendHtml(key: OverlayKey): string {
   switch (key) {
     case 'hinanbasho':
-      return iconRow('img/location-pin.png', '指定緊急避難場所');
+      return iconRow('img/evacuation-area.svg', '指定緊急避難場所');
     case 'denshouhi':
-      return iconRow('img/location-pin2_red.png', '自然災害伝承碑');
+      return iconRow('img/bunkazai.svg', '自然災害伝承碑');
     case 'pop':
       return POP_COLORS.map((c, i) => swatchRow(c, POP_LEGEND_LABELS[i])).join('');
     default:

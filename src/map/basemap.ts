@@ -107,6 +107,29 @@ function buildDarkStyle(): StyleSpecification {
 
 export type Basemap = 'pale' | 'photo';
 
+// ---- 追加スプライト（避難場所・伝承碑のピン） ----
+// MapLibre は sprite を配列で複数指定できる。接頭辞なしで参照できるのは id 'default' の
+// スプライトだけなので、アイコンを接頭辞なしで参照している地理院スタイル側を 'default' に据え、
+// 追加分は `smartmap:<アイコン名>` で参照する。背景（淡色 / 写真）を切り替えても使えるよう、
+// スタイルを返す直前に必ず注入する。
+export const SPRITE_ID = 'smartmap';
+const SPRITE_URL = 'https://shiwaku.github.io/custom-smartmap-sprite/sprite';
+
+interface SpriteEntry {
+  id: string;
+  url: string;
+}
+
+function withSprite(style: StyleSpecification): StyleSpecification {
+  const base = style.sprite;
+  const list: SpriteEntry[] = [];
+  if (typeof base === 'string') list.push({ id: 'default', url: base });
+  else if (Array.isArray(base)) list.push(...(base as SpriteEntry[]));
+  if (list.some((s) => s.id === SPRITE_ID)) return style;
+  list.push({ id: SPRITE_ID, url: SPRITE_URL });
+  return { ...style, sprite: list } as StyleSpecification;
+}
+
 // ---- 陰影起伏図（地理院タイル） ----
 // 淡色ベクトルには起伏の表現が無いため、2D でも地形が読めるように薄く重ねる。
 // ダークでは背景が暗いぶん陰影が強く出るので不透明度を落とす。
@@ -156,11 +179,13 @@ let darkCache: StyleSpecification | null = null;
 
 /** 背景＋テーマの組み合わせからスタイル定義を返す（淡色はキャッシュ） */
 export function getBasemapStyle(base: Basemap, theme: Theme): StyleSpecification {
-  if (base === 'photo') return photoStyle();
+  if (base === 'photo') return withSprite(photoStyle());
   if (theme === 'dark') {
-    if (!darkCache) darkCache = withHillshade(buildDarkStyle(), 'dark');
+    if (!darkCache) darkCache = withSprite(withHillshade(buildDarkStyle(), 'dark'));
     return darkCache;
   }
-  if (!paleCache) paleCache = withHillshade(paleStyle as unknown as StyleSpecification, 'light');
+  if (!paleCache) {
+    paleCache = withSprite(withHillshade(paleStyle as unknown as StyleSpecification, 'light'));
+  }
   return paleCache;
 }

@@ -1,7 +1,9 @@
 // ハザードマップに重ねる情報（避難場所・伝承碑・人口・3D建物・地形）の定義。
 // パネルのトグル生成・初期表示状態・説明文をここから生成する。
 
-export type OverlayKey = 'hinanbasho' | 'denshouhi' | 'pop' | 'plateau' | 'terrain';
+// 地形（起伏の立体化）は MapLibre 標準の TerrainControl（右上）で切り替えるため、
+// ここには含めない。
+export type OverlayKey = 'hinanbasho' | 'denshouhi' | 'pop' | 'plateau';
 
 export interface OverlayDef {
   key: OverlayKey;
@@ -11,10 +13,7 @@ export interface OverlayDef {
   desc: string;
   /** 初期表示状態 */
   on: boolean;
-  /**
-   * visibility を切り替える地図レイヤID。
-   * terrain は setTerrain で扱うためレイヤを持たない（空配列）。
-   */
+  /** visibility を切り替える地図レイヤID */
   layers: string[];
   /** このズーム以上で表示される旨をラベル脇に添える */
   minzoom?: number;
@@ -52,13 +51,6 @@ export const OVERLAYS: OverlayDef[] = [
     on: true,
     layers: ['plateau-pmtiles'],
     minzoom: 16,
-  },
-  {
-    key: 'terrain',
-    name: '地形（起伏を立体化）',
-    desc: '産業技術総合研究所のシームレス標高タイル（陸域統合DEM）で地形を立体化します。土砂災害や谷筋の浸水を地形と合わせて読むときに有効です。OFFにすると描画が軽くなります。',
-    on: true,
-    layers: [],
   },
 ];
 

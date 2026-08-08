@@ -50,7 +50,10 @@
       <div id="panel-body" class="panel-body">
         <div class="field">
           <div class="field-head">
-            <span class="field-label">ハザードマップ</span>
+            <span class="field-label">ハザードマップ（重ねられます）</span>
+            <div class="field-actions">
+              <button id="hazard-all-off" class="mini-btn" type="button">全OFF</button>
+            </div>
           </div>
           <div id="hazards" class="toggles"></div>
         </div>
@@ -82,6 +85,10 @@
           背景: 国土地理院 最適化ベクトルタイル / 全国最新写真 / 陰影起伏図<br />
           地形: 産業技術総合研究所 シームレス標高タイル<br />
           建物: 国土交通省 3D都市モデル PLATEAU<br />
+          アイコン:
+          <a href="https://github.com/shiwaku/custom-smartmap-sprite" target="_blank" rel="noopener"
+            >custom-smartmap-sprite</a
+          ><br />
         </span>
         ※表示は各機関の公表データに基づく想定です。避難の判断は自治体の情報に従ってください。<br />
         <span id="build-ver" class="build-ver"></span>
