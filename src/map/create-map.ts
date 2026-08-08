@@ -6,10 +6,6 @@ import MaplibreGeocoder, {
 } from '@maplibre/maplibre-gl-geocoder';
 import { DEM_SOURCE } from '../layers/terrain';
 
-const ATTRIBUTION =
-  '<a href="https://twitter.com/shi__works" target="_blank">X(旧Twitter)</a> | ' +
-  '<a href="https://github.com/shiwaku/japan-hazard-map-viewer" target="_blank">GitHub</a> ';
-
 /** 3D 表示時のピッチ（2D は 0） */
 export const PITCH_3D = 65;
 
@@ -96,13 +92,19 @@ export function createMap(style: StyleSpecification, isMobile: boolean): maplibr
     }),
     'top-right',
   );
-  // 左下はサイドパネルの裏になるため、スケール・出典はすべて右下へ寄せる
-  map.addControl(new maplibregl.ScaleControl({ maxWidth: 200, unit: 'metric' }), 'bottom-right');
-
   return map;
 }
 
-/** 出典表記コントロール（背景切替のあとに足したいので分離） */
+/**
+ * 出典表記コントロール。
+ * MapLibre は下側のコーナーでは「先に追加したものほど下」に積むため、
+ * 出典を最下段（地図の隅）に置くには、他のコントロールより先に追加する。
+ */
 export function attributionControl(): maplibregl.AttributionControl {
-  return new maplibregl.AttributionControl({ compact: true, customAttribution: ATTRIBUTION });
+  return new maplibregl.AttributionControl({ compact: true });
+}
+
+/** スケールバー。左下はサイドパネルの裏になるため右下へ置く */
+export function scaleControl(): maplibregl.ScaleControl {
+  return new maplibregl.ScaleControl({ maxWidth: 200, unit: 'metric' });
 }

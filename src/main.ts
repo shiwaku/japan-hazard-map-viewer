@@ -3,7 +3,7 @@ import '@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css';
 import './style.css';
 
 import { getBasemapStyle, type Basemap } from './map/basemap';
-import { attributionControl, createMap, PITCH_3D } from './map/create-map';
+import { attributionControl, createMap, PITCH_3D, scaleControl } from './map/create-map';
 import { beforeIdFor, beforeIdWithin } from './map/layer-order';
 import { HAZARD_LAYERS, HAZARD_OPACITY, type HazardLayerDef } from './config/hazard-layers';
 import { initialOverlayState, OVERLAYS, type OverlayKey } from './config/overlays';
@@ -72,13 +72,32 @@ const basemapCtrl = new BasemapControl(
   () => base,
   (next) => setBase(next),
 );
-map.addControl(basemapCtrl, 'bottom-right');
+// 右下は「先に追加したものほど下」に積まれる。
+// 下から順に 出典(ⓘ) → 背景切替 → スケール になるようこの順で追加する。
 map.addControl(attributionControl(), 'bottom-right');
+map.addControl(basemapCtrl, 'bottom-right');
+map.addControl(scaleControl(), 'bottom-right');
 // compact 指定でも初期状態は開いており、スマホでは画面の1/3を出典が覆ってしまう。
 // 畳んでおき、ⓘ ボタンで開けるようにする（出典はパネル下部にも常時掲載）。
-requestAnimationFrame(() => {
+// MapLibre はソースが増えるたびに出典を組み直して再表示するため、
+// 利用者が自分で開くまでは畳み続ける。
+let attribOpenedByUser = false;
+document.addEventListener(
+  'click',
+  (e) => {
+    if ((e.target as HTMLElement | null)?.closest?.('.maplibregl-ctrl-attrib-button')) {
+      attribOpenedByUser = true;
+    }
+  },
+  true,
+);
+function collapseAttribution(): void {
+  if (attribOpenedByUser) return;
   document.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show');
-});
+}
+map.on('sourcedata', collapseAttribution);
+map.on('styledata', collapseAttribution);
+requestAnimationFrame(collapseAttribution);
 
 const defOf = (id: string): HazardLayerDef =>
   HAZARD_LAYERS.find((d) => d.id === id) ?? HAZARD_LAYERS[0];
