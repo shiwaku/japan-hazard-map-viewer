@@ -430,6 +430,153 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* ===== 浸水シミュレーション（浸水ナビ） ===== */
+.suibou-status {
+  margin: 2px 8px 6px;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--ink-2);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+.suibou-status[hidden] {
+  display: none;
+}
+
+.suibou-suggest {
+  margin: 0 8px 8px;
+  align-self: start;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.suibou-suggest[hidden] {
+  display: none;
+}
+
+.suibou-detail {
+  display: grid;
+  gap: 2px;
+  margin: 4px 0 2px;
+  padding: 10px 8px 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.suibou-detail[hidden] {
+  display: none;
+}
+
+.suibou-head {
+  display: grid;
+  gap: 3px;
+  padding: 0 4px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.suibou-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.suibou-sub {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.suibou-badges:empty {
+  display: none;
+}
+
+.suibou-badge {
+  display: inline-block;
+  margin: 3px 4px 0 0;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.suibou-badge.is-depth {
+  background: rgba(220, 38, 38, 0.14);
+  color: #dc2626;
+}
+
+.suibou-badge.is-start,
+.suibou-badge.is-duration {
+  background: var(--track);
+  color: var(--ink-2);
+}
+
+:root[data-theme='dark'] .suibou-badge.is-depth {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+.suibou-head .mini-btn {
+  justify-self: start;
+  margin-top: 6px;
+}
+
+.suibou-time {
+  display: grid;
+  gap: 6px;
+  padding: 10px 4px 6px;
+}
+
+.suibou-time-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+
+.suibou-time-label b {
+  font-size: 13px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.suibou-time input[type='range'] {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.suibou-time input[type='range']:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.suibou-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.suibou-controls .mini-btn {
+  min-width: 72px;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+/* 浸水ナビのポップアップ（値を右寄せの数値として見せる） */
+.suibou-popup .popup-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.suibou-popup .popup-value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* ===== フッタ ===== */
 .panel-foot {
   flex: none;

@@ -72,7 +72,8 @@ const DEPTH_HIGHTIDE_TSUNAMI: LegendColorItem[] = [
 ];
 
 // ---- 凡例の色見本（再利用するもの） ----
-const SWATCHES_SHINSUISHIN: LegendSwatch[] = [
+/** 浸水深ランクの配色。浸水ナビの浸水ランクも同じ区分・同じ色を使う */
+export const SWATCHES_SHINSUISHIN: LegendSwatch[] = [
   { color: 'rgb(220, 122, 220)', label: '20.0m以上' },
   { color: 'rgb(242, 133, 201)', label: '10.0 ～ 20.0m' },
   { color: 'rgb(255, 145, 145)', label: '5.0 ～ 10.0m' },
