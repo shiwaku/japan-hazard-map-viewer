@@ -4,6 +4,8 @@
 
 https://shiwaku.github.io/japan-hazard-map-viewer/#16.29/35.733868/139.797143/22.4/67
 
+![浸水ナビの想定破堤点シミュレーション（荒川左岸17.50k が破堤して18時間後）](docs/screenshot-suibou.png)
+
 ## 画面の使い方
 
 - **左サイドパネル** … ハザードマップ（トグルで**複数を重ねられます**）、浸水シミュレーション（浸水ナビ）、重ねる情報（避難場所・伝承碑・100mメッシュ人口・PLATEAU建物）、視点（2D / 3D）。
@@ -53,7 +55,13 @@ npm run build    # 型チェック（tsc）＋本番ビルド（dist/ に出力�
 npm run preview  # ビルド成果物のローカルプレビュー
 npm run lint     # ESLint
 npm run format   # Prettier で整形
+npm run e2e      # E2Eテスト（Playwright。初回は npx playwright install chromium）
+npm run e2e:ui   # E2Eテストを UI モードで実行
 ```
+
+E2E は `npm run build` した成果物を `vite preview` で配信して実行します。
+浸水ナビ API と地理院タイルは `e2e/fixtures.ts` でモックしているため、**ネットワークに繋がずに動き**、
+外部サーバへ負荷もかけません。GitHub Actions（`.github/workflows/ci.yml`）で PR ごとに実行されます。
 
 ### 構成
 
@@ -67,6 +75,8 @@ npm run format   # Prettier で整形
   - `map/` `layers/` `ui/` `popups/` `routing/` `lib/` … 機能ごとのモジュール
   - `pale-style.json` … 国土地理院 最適化ベクトルタイル（淡色地図風スタイル）
 - `public/` … 静的アセット（`icons` / `manifest.webmanifest` / `sw.js` / `img` / `gif` / `legend`）
+- `e2e/` … Playwright の E2Eテスト（浸水ナビ API はモック）
+- `docs/` … 設計書・調査メモ
 
 ### デプロイ
 
