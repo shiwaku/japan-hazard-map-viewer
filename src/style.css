@@ -973,22 +973,28 @@ body {
   display: none;
 }
 
-.suibou-river {
+.suibou-pick {
+  display: grid;
+  gap: 8px;
   margin: 0 8px 8px;
 }
 
-.suibou-river[hidden] {
+.suibou-pick[hidden] {
   display: none;
 }
 
-.suibou-river-label {
+.suibou-pick-label {
   display: grid;
   gap: 4px;
   font-size: 11px;
   color: var(--ink-3);
 }
 
-.suibou-river select {
+.suibou-pick-label[hidden] {
+  display: none;
+}
+
+.suibou-pick select {
   width: 100%;
   padding: 5px 6px;
   border: 1px solid var(--line-2);

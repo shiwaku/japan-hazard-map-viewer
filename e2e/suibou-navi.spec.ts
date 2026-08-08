@@ -85,61 +85,29 @@ test('再生は末尾で自動停止する', async ({ page }) => {
 });
 
 /**
- * 破堤点を名前で選ぶ。
- * 「実際に描画されている」フィーチャの座標をクリックする（合成イベントでは
- * MapLibre のハンドラが反応せず、state の座標だけでは描画前に外すことがある）。
+ * 破堤点をパネルのセレクトから選ぶ。
+ * 地図上の円は半径5pxで、CI のソフトウェア描画では取りこぼすことがあるため、
+ * 選択そのものは DOM 経由で行う（地図クリックでの選択は別テストで確認する）。
  */
 async function selectBreakPointByName(
   page: import('@playwright/test').Page,
   name: string,
 ): Promise<void> {
-  const locate = () =>
-    page.evaluate((target) => {
-      const m = (
-        window as unknown as {
-          __map: {
-            queryRenderedFeatures(o: { layers: string[] }): {
-              properties: { name: string };
-              geometry: { coordinates: [number, number] };
-            }[];
-            project(c: [number, number]): { x: number; y: number };
-          };
-        }
-      ).__map;
-      const f = m
-        .queryRenderedFeatures({ layers: ['suibou-points'] })
-        .find((x) => x.properties.name === target);
-      if (!f) return null;
-      const q = m.project(f.geometry.coordinates);
-      return { x: Math.round(q.x), y: Math.round(q.y) };
-    }, name);
-
-  // 円が描画されるまで待つ（描画前は queryRenderedFeatures が空を返す）
-  await expect.poll(locate, { message: `${name} が描画されない` }).not.toBeNull();
-
-  // 半径 5px の的なので、負荷でこぼしたときは一度だけ撃ち直す
-  const title = page.locator('.suibou-title');
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const pt = await locate();
-    if (!pt) continue;
-    await page.mouse.click(pt.x, pt.y);
-    try {
-      await expect(title).toContainText(name, { timeout: 5000 });
-      return;
-    } catch {
-      if (attempt === 1) throw new Error(`${name} を選択できなかった`);
-    }
-  }
+  const select = page.locator('.suibou-pick select').last();
+  const value = await select.locator('option', { hasText: name }).first().getAttribute('value');
+  expect(value, `${name} がセレクトに無い`).toBeTruthy();
+  await select.selectOption(value!);
+  await expect(page.locator('.suibou-title')).toContainText(name);
 }
 
 test('河川で絞り込める', async ({ page }) => {
   await searchBreakPoints(page);
 
-  const select = page.locator('.suibou-river select');
-  await expect(select).toBeVisible();
-  await expect(select.locator('option')).toHaveCount(3); // すべて / 荒川 / 中川
+  const river = page.locator('.suibou-pick select').first();
+  await expect(river).toBeVisible();
+  await expect(river.locator('option')).toHaveCount(3); // すべて / 荒川 / 中川
 
-  await select.selectOption('中川');
+  await river.selectOption('中川');
   const filter = await page.evaluate(() =>
     JSON.stringify(
       (window as unknown as { __map: { getFilter(id: string): unknown } }).__map.getFilter(
@@ -148,6 +116,10 @@ test('河川で絞り込める', async ({ page }) => {
     ),
   );
   expect(filter).toContain('中川');
+
+  // 破堤点のセレクトも絞り込みに追従する（中川は1件）
+  const bp = page.locator('.suibou-pick select').last();
+  await expect(bp.locator('option')).toHaveCount(2); // 見出し + 中川BP012
 });
 
 test('浸水深ポップアップに3つの値が出る', async ({ page }) => {
@@ -173,4 +145,44 @@ test('破堤点が無い地点では検索可能範囲への案内を出す', as
   await expect(page.locator('.suibou-status')).toContainText('登録されていません');
   // 検索可能範囲は既定ONなので、その中をクリックするよう案内される
   await expect(page.locator('.suibou-status')).toContainText('検索可能範囲');
+});
+
+test('地図上の破堤点をクリックしても選択できる', async ({ page }) => {
+  await searchBreakPoints(page);
+
+  const locate = () =>
+    page.evaluate(() => {
+      const m = (
+        window as unknown as {
+          __map: {
+            queryRenderedFeatures(o: { layers: string[] }): {
+              properties: { name: string };
+              geometry: { coordinates: [number, number] };
+            }[];
+            project(c: [number, number]): { x: number; y: number };
+          };
+        }
+      ).__map;
+      const f = m
+        .queryRenderedFeatures({ layers: ['suibou-points'] })
+        .find((x) => x.properties.name === 'BP168');
+      if (!f) return null;
+      const q = m.project(f.geometry.coordinates);
+      return { x: Math.round(q.x), y: Math.round(q.y) };
+    });
+
+  await expect.poll(locate, { message: 'BP168 が描画されない' }).not.toBeNull();
+
+  // 半径5pxの的なので、描画やCPUの都合で外すことがある。数回まで撃ち直す
+  const title = page.locator('.suibou-title');
+  await expect
+    .poll(
+      async () => {
+        const pt = await locate();
+        if (pt) await page.mouse.click(pt.x, pt.y);
+        return (await title.textContent()) ?? '';
+      },
+      { timeout: 30_000, message: '地図クリックで破堤点を選択できない' },
+    )
+    .toContain('BP168');
 });
