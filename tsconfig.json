@@ -20,7 +20,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
 
-    "types": ["vite/client"]
+    // e2e/ と playwright.config.ts は Node 側で動くため node の型も必要
+    "types": ["vite/client", "node"]
   },
   "include": ["src", "e2e", "vite.config.ts", "playwright.config.ts"]
 }
