@@ -4,6 +4,7 @@ import MaplibreGeocoder, {
   type MaplibreGeocoderApi,
   type MaplibreGeocoderApiConfig,
 } from '@maplibre/maplibre-gl-geocoder';
+import { DEM_SOURCE } from '../layers/terrain';
 
 const ATTRIBUTION =
   '<a href="https://twitter.com/shi__works" target="_blank">X(旧Twitter)</a> | ' +
@@ -78,6 +79,11 @@ export function createMap(style: StyleSpecification, isMobile: boolean): maplibr
   map.addControl(new MaplibreGeocoder(geocoderApi, { maplibregl }), 'top-right');
   map.addControl(
     new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }),
+    'top-right',
+  );
+  // 地形（起伏の立体化）の ON/OFF。DEM ソースは load 後に ensureDemSource() で用意する。
+  map.addControl(
+    new maplibregl.TerrainControl({ source: DEM_SOURCE, exaggeration: 1 }),
     'top-right',
   );
   map.addControl(new maplibregl.FullscreenControl(), 'top-right');

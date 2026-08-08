@@ -1,24 +1,20 @@
-# 全国ハザードマップ on MapLibre GL JS
+# ハザードマップ
 
 ## Public Website
 
 https://shiwaku.github.io/japan-hazard-map-viewer/#16.29/35.733868/139.797143/22.4/67
 
-![全国ハザードマップ（洪水浸水想定区域 × 地形 × PLATEAU 3D建物）](docs/screenshot-light.png)
-
-<p>
-  <img src="docs/screenshot-dark.png" width="62%" alt="ダークテーマ" />
-  <img src="docs/screenshot-mobile.png" width="19%" alt="モバイル（ボトムシート）" />
-</p>
-
 ## 画面の使い方
 
-- **左サイドパネル** … ハザードマップの種類（単一選択）、重ねる情報（避難場所・伝承碑・100mメッシュ人口・PLATEAU建物・地形）、視点（2D / 3D）。
-  選択中のハザードの直下に不透明度スライダーと凡例をインライン表示します。各行の `i` ボタンでそのレイヤーの説明を開閉できます。
-  スマホではボトムシートになり、初期状態では畳まれています。
+- **左サイドパネル** … ハザードマップ（トグルで**複数を重ねられます**）、重ねる情報（避難場所・伝承碑・100mメッシュ人口・PLATEAU建物）、視点（2D / 3D）。
+  表示中のレイヤーの直下に不透明度スライダーと凡例をインライン表示します。重ねたときは不透明度で下のレイヤーを透かして見比べてください。
+  各行の `i` ボタンでそのレイヤーの説明を開閉できます。スマホではボトムシートになり、初期状態では畳まれています。
+- **重ね順** … `src/config/hazard-layers.ts` の並び順（後ろにあるものほど前面）。ハザード → 100mメッシュ人口 → PLATEAU建物 → 地名ラベル → ピン の順に重なります。
 - **ヘッダのボタン** … 🌙/☀️ でライト・ダークテーマ切替（選択は `localStorage` に保存）、▴/▾ でパネル開閉。
+- **右上** … 地名検索、ズーム・方位・傾き、**地形（起伏の立体化）の ON/OFF**、全画面、現在地。
 - **右下** … 背景地図の切替（地図＝国土地理院 最適化ベクトルタイル淡色 / 写真＝全国最新写真）、スケール、出典。
-- **地図クリック** … 避難場所・伝承碑・人口メッシュの上ではその属性を、それ以外では選択中ハザードの想定浸水深（PNGタイルのRGBから判定）をポップアップ表示します。
+- **地図クリック** … 避難場所・伝承碑・人口メッシュの上ではその属性を、それ以外では表示中ハザードの想定浸水深（PNGタイルのRGBから判定）をポップアップ表示します。複数重ねている場合は、それぞれの値を並べて表示します。
+- **指定緊急避難場所** … 表示中のハザードに対応するものだけに絞り込みます（複数重ねている場合は、そのいずれかに対応するもの）。
 - **`?debug`** … 診断HUD（ビルド時刻・ズーム・WebGLコンテキスト消失回数・エラーログ）を表示します。
 
 PWA（`manifest.webmanifest` + Service Worker）に対応しており、ホーム画面に追加してスタンドアロン表示できます。
@@ -93,6 +89,13 @@ npm run format   # Prettier で整形
     - 原初データ出典：[地域分析に有用なデータの提供, 地域・交通データ研究所代表（東京大学空間情報科学研究センター客員研究員）西澤明](https://gtfs-gis.jp/teikyo/index.html)
   - 概要：地域・交通データ研究所にて公開されている令和2年簡易100mメッシュ人口データをFlatGeobuf形式に変換したデータです。
   - ライセンス：[西澤明](https://gtfs-gis.jp/teikyo/index.html)、[@shi-works](https://twitter.com/shi__works)、[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ja)
+
+## アイコン
+
+- custom-smartmap-sprite（Geolonia smartmap 向けアイコンセット）
+  - 出典：https://github.com/shiwaku/custom-smartmap-sprite （プレビュー: https://shiwaku.github.io/custom-smartmap-sprite/ ）
+  - 概要：指定緊急避難場所は `evacuation-area`（JIS の「避難場所」ピクトグラム）、自然災害伝承碑は `bunkazai` を使用。背景スタイルへ `smartmap` という id でスプライトを追加し、`smartmap:<アイコン名>` で参照しています。
+  - ライセンス：MIT License（Copyright (c) 2024 Geolonia, Inc.）
 
 ## 背景地図及び地形データ
 

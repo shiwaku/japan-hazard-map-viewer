@@ -1,14 +1,9 @@
 import type { Map as MlMap } from 'maplibre-gl';
-import {
-  HAZARD_LAYERS,
-  DISAPORTAL_ATTRIBUTION,
-  type HazardLayerDef,
-} from '../config/hazard-layers';
+import { DISAPORTAL_ATTRIBUTION, type HazardLayerDef } from '../config/hazard-layers';
 
 /**
- * 選択中のハザードラスタだけを地図に載せる（未選択のものはソースごと持たない）。
- * 旧実装は 15 レイヤ分の source/layer を常時抱えていたが、単一選択なので不要。
- * beforeId に地名ラベル（最初の symbol レイヤ）を渡し、ラスタがラベルを覆わないようにする。
+ * 表示中のハザードラスタだけを地図に載せる（OFF のものはソースごと持たない）。
+ * 複数を同時に載せられるので、beforeId で重ね順を指定する。
  */
 export function ensureHazardLayer(
   map: MlMap,
@@ -41,11 +36,8 @@ export function ensureHazardLayer(
   }
 }
 
-/** keepId 以外のハザードレイヤとソースを取り外す */
-export function removeOtherHazardLayers(map: MlMap, keepId: string): void {
-  for (const def of HAZARD_LAYERS) {
-    if (def.id === keepId) continue;
-    if (map.getLayer(def.id)) map.removeLayer(def.id);
-    if (map.getSource(def.id)) map.removeSource(def.id);
-  }
+/** ハザードレイヤとソースを取り外す（未追加なら何もしない） */
+export function removeHazardLayer(map: MlMap, def: HazardLayerDef): void {
+  if (map.getLayer(def.id)) map.removeLayer(def.id);
+  if (map.getSource(def.id)) map.removeSource(def.id);
 }

@@ -1,6 +1,6 @@
 // 左サイドパネルの組み立て。
-// ハザード選択（ラジオ）・重ねる情報（トグル）・視点（2D/3D）を生成し、
-// 選択中のハザード直下にだけ不透明度スライダーと凡例をインライン表示する。
+// ハザード（複数選択トグル）・重ねる情報（トグル）・視点（2D/3D）を生成し、
+// 表示中のレイヤー直下にだけ不透明度スライダーと凡例をインライン表示する。
 
 import { HAZARD_LAYERS, HAZARD_OPACITY } from '../config/hazard-layers';
 import { OVERLAYS, type OverlayKey } from '../config/overlays';
@@ -10,9 +10,9 @@ import { hazardLegendHtml, overlayLegendHtml } from './legend';
 export type PitchMode = '2d' | '3d';
 
 export interface PanelState {
-  /** 表示中のハザードレイヤID */
-  hazardId: string;
-  /** ハザードごとの不透明度（切替で戻ってきても保つ） */
+  /** 表示中のハザードレイヤID（複数可） */
+  hazards: Record<string, boolean>;
+  /** ハザードごとの不透明度（OFF→ON で戻ってきても保つ） */
   hazardOpacity: Record<string, number>;
   overlays: Record<OverlayKey, boolean>;
   pitch: PitchMode;
@@ -20,7 +20,7 @@ export interface PanelState {
 }
 
 export interface PanelHandlers {
-  onHazard(id: string): void;
+  onHazard(id: string, on: boolean): void;
   onOpacity(id: string, value: number): void;
   onOverlay(key: OverlayKey, on: boolean): void;
   onPitch(mode: PitchMode): void;
@@ -75,8 +75,10 @@ export function buildPanel(state: PanelState, handlers: PanelHandlers): Panel {
   const themeBtn = requireElement('theme-btn') as HTMLButtonElement;
   const collapseBtn = requireElement('collapse-btn') as HTMLButtonElement;
 
-  // ---- ハザード（単一選択） ----
+  // ---- ハザード（複数選択・重ねられる） ----
   for (const def of HAZARD_LAYERS) {
+    const on = state.hazards[def.id] === true;
+
     const item = document.createElement('div');
     item.className = 'layer-item';
     item.dataset.key = def.id;
@@ -85,27 +87,24 @@ export function buildPanel(state: PanelState, handlers: PanelHandlers): Panel {
     label.className = 'toggle';
 
     const input = document.createElement('input');
-    input.type = 'radio';
-    input.name = 'hazard';
+    input.type = 'checkbox';
     input.value = def.id;
-    input.checked = def.id === state.hazardId;
-    input.addEventListener('change', () => {
-      if (input.checked) selectHazard(def.id);
-    });
+    input.checked = on;
+    input.addEventListener('change', () => setHazard(def.id, input.checked));
 
-    const mark = document.createElement('span');
-    mark.className = 'radio-mark';
+    const sw = document.createElement('span');
+    sw.className = 'switch';
     const text = document.createElement('span');
     text.className = 't-label';
     text.textContent = def.label;
 
     const { info, descEl } = infoParts(def.label, def.desc);
-    label.append(input, mark, text, info);
+    label.append(input, sw, text, info);
 
-    // 不透明度スライダー（選択中のみ表示）
+    // 不透明度スライダー（表示中のみ）。重ねたときはここで下のレイヤーを透かす。
     const opac = document.createElement('div');
     opac.className = 'layer-opacity';
-    opac.hidden = def.id !== state.hazardId;
+    opac.hidden = !on;
     const range = document.createElement('input');
     range.type = 'range';
     range.min = '0';
@@ -125,21 +124,31 @@ export function buildPanel(state: PanelState, handlers: PanelHandlers): Panel {
     const legend = document.createElement('div');
     legend.className = 'layer-legend';
     legend.innerHTML = hazardLegendHtml(def);
-    legend.hidden = def.id !== state.hazardId;
+    legend.hidden = !on;
 
     item.append(label, descEl, opac, legend);
     hazardsDiv.append(item);
   }
 
-  function selectHazard(id: string): void {
-    state.hazardId = id;
-    for (const item of hazardsDiv.querySelectorAll<HTMLElement>('.layer-item')) {
-      const selected = item.dataset.key === id;
-      item.querySelector<HTMLElement>('.layer-opacity')?.toggleAttribute('hidden', !selected);
-      item.querySelector<HTMLElement>('.layer-legend')?.toggleAttribute('hidden', !selected);
-    }
-    handlers.onHazard(id);
+  function setHazard(id: string, on: boolean): void {
+    state.hazards[id] = on;
+    const item = hazardsDiv.querySelector<HTMLElement>(`.layer-item[data-key="${id}"]`);
+    item?.querySelector<HTMLElement>('.layer-opacity')?.toggleAttribute('hidden', !on);
+    item?.querySelector<HTMLElement>('.layer-legend')?.toggleAttribute('hidden', !on);
+    handlers.onHazard(id, on);
   }
+
+  // 重ねすぎたときに一括で消せるように（全ONは15枚のラスタを同時に読むので用意しない）
+  requireElement('hazard-all-off').addEventListener('click', () => {
+    for (const def of HAZARD_LAYERS) {
+      if (!state.hazards[def.id]) continue;
+      const input = hazardsDiv.querySelector<HTMLInputElement>(
+        `.layer-item[data-key="${def.id}"] input`,
+      );
+      if (input) input.checked = false;
+      setHazard(def.id, false);
+    }
+  });
 
   // ---- 重ねる情報（複数選択） ----
   for (const def of OVERLAYS) {
