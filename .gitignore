@@ -7,3 +7,8 @@ dist
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Playwright
+/playwright-report/
+/test-results/
+/e2e/.auth/
