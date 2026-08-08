@@ -1,0 +1,126 @@
+import type { Page, Route } from '@playwright/test';
+
+/**
+ * 浸水ナビ API のモック。
+ *
+ * 実 API は「分間リクエスト数30以下程度」という制約があり、地点によっては応答に
+ * 10秒以上かかる。テストのたびに叩くのは負荷の面でも安定性の面でも避けたいため、
+ * 実レスポンス（荒川下流）を元にした固定データを返す。
+ */
+
+export const BREAK_POINTS = [
+  {
+    ID: 'bp-max-0001',
+    BPName: 'BP168',
+    BPLocation: '荒川左岸 15.00k',
+    BPLat: 35.766,
+    BPLon: 139.806,
+    CSVScale: 0,
+    EntryRiverName: '荒川',
+    RiverCode: '8303040001',
+    SubRiverCode: '_',
+    OfficeCode: '21281',
+    BPTime: [10, 20, 30, 60, 120, 180, 360, 720, 1440],
+    isDepthMax: true,
+    isStartMax: false,
+    isDurationMax: false,
+  },
+  {
+    ID: 'bp-second-0002',
+    BPName: 'BP199',
+    BPLocation: '荒川左岸 12.25k',
+    BPLat: 35.762,
+    BPLon: 139.812,
+    CSVScale: 1,
+    EntryRiverName: '荒川',
+    RiverCode: '8303040001',
+    SubRiverCode: '_',
+    OfficeCode: '21281',
+    BPTime: [10, 30, 60, 180],
+    isDepthMax: false,
+    isStartMax: true,
+    isDurationMax: false,
+  },
+  {
+    ID: 'bp-other-0003',
+    BPName: 'BP012',
+    BPLocation: '中川右岸 5.00k',
+    BPLat: 35.769,
+    BPLon: 139.818,
+    CSVScale: 0,
+    EntryRiverName: '中川',
+    RiverCode: '8303050001',
+    SubRiverCode: 'a',
+    OfficeCode: '21281',
+    BPTime: [10, 60, 240],
+    isDepthMax: false,
+    isStartMax: false,
+    isDurationMax: true,
+  },
+];
+
+/** 1x1 の透明 PNG（タイルの代わり） */
+const PNG_1X1 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+export interface SuibouMockOptions {
+  /** GetBreakPoint が返す破堤点。空配列にすると「該当なし」を再現できる */
+  breakPoints?: typeof BREAK_POINTS;
+}
+
+/** 浸水ナビへのリクエストをすべて横取りする */
+export async function mockSuibouNavi(page: Page, opts: SuibouMockOptions = {}): Promise<void> {
+  const breakPoints = opts.breakPoints ?? BREAK_POINTS;
+
+  await page.route('**/suiboumap.gsi.go.jp/**', (route: Route) => {
+    const url = route.request().url();
+
+    if (url.includes('/Api/Public/GetBreakPoint')) {
+      return route.fulfill({ json: breakPoints });
+    }
+    if (url.includes('/Api/Public/GetMaxDepthByTime')) {
+      return route.fulfill({ json: { Depth: 2.13, OfficeCode: '21281' } });
+    }
+    if (url.includes('/Api/Public/GetMaxDepth')) {
+      return route.fulfill({ json: { Depth: 3.43, OfficeCode: '21281' } });
+    }
+    if (url.includes('/Api/Public/GetFloodStartTime')) {
+      return route.fulfill({ json: { StartTime: 25.0, OfficeCode: '21281' } });
+    }
+    if (url.includes('/Tile/')) {
+      return route.fulfill({ contentType: 'image/png', body: PNG_1X1 });
+    }
+    return route.fulfill({ status: 404, body: '' });
+  });
+}
+
+/** 地図の初期化完了を待つ */
+export async function waitForMap(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    const m = (window as unknown as { __map?: { isStyleLoaded(): boolean } }).__map;
+    return !!m && m.isStyleLoaded();
+  });
+  // load イベント後のデータ層追加が終わるまで
+  await page.waitForFunction(() =>
+    (window as unknown as { __map?: { getLayer(id: string): unknown } }).__map?.getLayer(
+      'flood_l2_shinsuishin',
+    ),
+  );
+}
+
+/** 現在のスタイルにおける、自前レイヤーの並び（下→上） */
+export async function ownLayerOrder(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const m = (window as unknown as { __map: { getStyle(): { layers: { id: string }[] } } }).__map;
+    return m
+      .getStyle()
+      .layers.map((l) => l.id)
+      .filter((id) =>
+        /^(suibou|flood_|hightide|tsunami|naisui|dosekiryu|kyukeis|jisuberi|nadare|100m_mesh|plateau-pmtiles|hinanbasho|denshouhi)/.test(
+          id,
+        ),
+      );
+  });
+}

@@ -17,6 +17,8 @@ export interface SuibouState {
   /** selected.BPTime に対するインデックス */
   timeIndex: number;
   playing: boolean;
+  /** 破堤点を河川名で絞り込む（null＝すべて）。数百件返ることがあるため */
+  riverFilter: string | null;
   layers: { maxRank: boolean; maxRed: boolean; range: boolean };
   opacity: number;
 }
@@ -28,7 +30,9 @@ export function initialSuibouState(): SuibouState {
     selected: null,
     timeIndex: 0,
     playing: false,
-    layers: { maxRank: false, maxRed: false, range: false },
+    riverFilter: null,
+    // 検索可能範囲は既定でON。どこにデータがあるか先に見せて空振りを減らす
+    layers: { maxRank: false, maxRed: false, range: true },
     opacity: SUIBOU_OPACITY,
   };
 }
@@ -44,13 +48,18 @@ export interface SuibouHandlers {
   onClearSelection(): void;
   /** 候補（最大浸水をもたらす破堤点）をワンタップで選ぶ */
   onSelect(id: string): void;
+  /** 破堤点を河川名で絞り込む（null＝すべて） */
+  onRiverFilter(river: string | null): void;
 }
 
 export interface SuibouPanel {
   /** state の変化（検索結果・選択・再生状態）を UI に反映する */
   render(): void;
-  /** 検索中・該当なし・エラーなどの一行メッセージ */
-  setStatus(message: string | null): void;
+  /**
+   * 検索中・該当なし・エラーなどの一行メッセージ。
+   * action を渡すと、その場で押せるボタンを添える（例: 検索可能範囲を表示）。
+   */
+  setStatus(message: string | null, action?: { label: string; onClick: () => void }): void;
   /**
    * 「最大浸水をもたらす破堤点」へのショートカットを出す。
    * 破堤点が数百件返ることがあり、地図上から目当ての点を探すのが難しいため。
@@ -139,13 +148,41 @@ export function buildSuibouPanel(
   );
   container.append(rangeItem);
 
-  // ---- 状態メッセージ ----
+  // ---- 状態メッセージ（必要なら操作ボタンを添える） ----
   const status = el('div', 'suibou-status');
   status.hidden = true;
+  const statusAction = el('button', 'mini-btn suibou-action');
+  statusAction.type = 'button';
+  statusAction.hidden = true;
   const suggest = el('button', 'mini-btn suibou-suggest');
   suggest.type = 'button';
   suggest.hidden = true;
-  container.append(status, suggest);
+
+  // ---- 破堤点の選択（数百件返ることがあり、地図上から探すのは現実的でない） ----
+  const pickBox = el('div', 'suibou-pick');
+  pickBox.hidden = true;
+
+  const riverLabel = el('label', 'suibou-pick-label');
+  riverLabel.append(document.createTextNode('河川で絞り込む'));
+  const riverSelect = el('select');
+  riverSelect.addEventListener('change', () => {
+    const v = riverSelect.value;
+    state.riverFilter = v === '' ? null : v;
+    handlers.onRiverFilter(state.riverFilter);
+    renderRivers();
+  });
+  riverLabel.append(riverSelect);
+
+  const bpLabel = el('label', 'suibou-pick-label');
+  bpLabel.append(document.createTextNode('破堤点を選ぶ'));
+  const bpSelect = el('select');
+  bpSelect.addEventListener('change', () => {
+    if (bpSelect.value) handlers.onSelect(bpSelect.value);
+  });
+  bpLabel.append(bpSelect);
+
+  pickBox.append(riverLabel, bpLabel);
+  container.append(status, statusAction, suggest, pickBox);
 
   // ---- 選択中の破堤点 ----
   const detail = el('div', 'suibou-detail');
@@ -220,8 +257,60 @@ export function buildSuibouPanel(
   detail.append(head, timeField, rankItem, redItem, opac, legend);
   container.append(detail);
 
+  /** 検索結果を河川セレクト・破堤点セレクトへ流し込む */
+  function renderRivers(): void {
+    pickBox.hidden = !state.active || state.breakPoints.length === 0;
+    if (pickBox.hidden) return;
+
+    const counts = new Map<string, number>();
+    for (const bp of state.breakPoints) {
+      counts.set(bp.EntryRiverName, (counts.get(bp.EntryRiverName) ?? 0) + 1);
+    }
+
+    // 河川が1つしかないなら絞り込む意味がないので隠す
+    riverSelect.parentElement!.hidden = counts.size <= 1;
+    const rivers = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    riverSelect.replaceChildren();
+    const all = document.createElement('option');
+    all.value = '';
+    all.textContent = `すべての河川（${state.breakPoints.length}）`;
+    riverSelect.append(all);
+    for (const [name, n] of rivers) {
+      const o = document.createElement('option');
+      o.value = name;
+      o.textContent = `${name}（${n}）`;
+      riverSelect.append(o);
+    }
+    riverSelect.value = state.riverFilter ?? '';
+
+    // 破堤点は河川の絞り込みを反映した一覧にする
+    const list = state.riverFilter
+      ? state.breakPoints.filter((b) => b.EntryRiverName === state.riverFilter)
+      : state.breakPoints;
+    bpSelect.replaceChildren();
+    const head = document.createElement('option');
+    head.value = '';
+    head.textContent = `選んでください（${list.length}件）`;
+    bpSelect.append(head);
+    for (const bp of list) {
+      const o = document.createElement('option');
+      o.value = bp.ID;
+      const marks = [
+        bp.isDepthMax ? '最大浸水' : '',
+        bp.isStartMax ? '最速' : '',
+        bp.isDurationMax ? '最長' : '',
+      ].filter(Boolean);
+      o.textContent =
+        `${bp.EntryRiverName} ${bp.BPName}｜${bp.BPLocation}` +
+        (marks.length ? `（${marks.join('・')}）` : '');
+      bpSelect.append(o);
+    }
+    bpSelect.value = state.selected?.ID ?? '';
+  }
+
   function render(): void {
     rangeItem.hidden = !state.active;
+    renderRivers();
     const bp = state.selected;
     detail.hidden = !state.active || !bp;
     if (!bp) return;
@@ -256,9 +345,17 @@ export function buildSuibouPanel(
     redInput.checked = state.layers.maxRed;
   }
 
-  function setStatus(message: string | null): void {
+  function setStatus(
+    message: string | null,
+    action?: { label: string; onClick: () => void },
+  ): void {
     status.hidden = message === null;
     status.textContent = message ?? '';
+    statusAction.hidden = !action;
+    if (action) {
+      statusAction.textContent = action.label;
+      statusAction.onclick = action.onClick;
+    }
   }
 
   function setSuggestion(bp: BreakPoint | null): void {

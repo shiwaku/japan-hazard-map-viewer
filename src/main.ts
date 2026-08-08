@@ -20,6 +20,7 @@ import { setTerrainEnabled } from './layers/terrain';
 import {
   ensurePointLayers,
   highlightBreakPoint,
+  setRiverFilter,
   removeAllSuibouLayers,
   removeTimeseriesLayers,
   setBreakPoints,
@@ -154,6 +155,7 @@ function buildSuibouLayers(): void {
   }
   ensurePointLayers(map);
   setBreakPoints(map, suibou.breakPoints);
+  setRiverFilter(map, suibou.riverFilter);
   highlightBreakPoint(map, suibou.selected?.ID ?? null);
   setRange(map, suibou.layers.range, suibou.selected?.CSVScale ?? 0);
 
@@ -233,6 +235,7 @@ const suibouPanel: SuibouPanel = buildSuibouPanel(
         searchAbort?.abort();
         suibou.breakPoints = [];
         suibou.selected = null;
+        suibou.riverFilter = null;
         suibouPanel.setStatus(null);
         suibouPanel.setSuggestion(null);
       } else {
@@ -271,6 +274,10 @@ const suibouPanel: SuibouPanel = buildSuibouPanel(
     },
     onSelect(id) {
       selectBreakPoint(id);
+    },
+    onRiverFilter(river) {
+      suibou.riverFilter = river;
+      setRiverFilter(map, river);
     },
   },
 );
@@ -328,11 +335,35 @@ async function searchBreakPoints(lng: number, lat: number): Promise<void> {
     suibou.breakPoints = list;
     suibou.selected = null;
     buildSuibouLayers();
-    suibouPanel.setStatus(
-      list.length === 0
-        ? 'この地点を浸水させる想定破堤点は登録されていません。別の地点を試してください。'
-        : `${list.length}件の想定破堤点が見つかりました。地図上の点を選ぶと、経過時間ごとの浸水範囲を表示します。`,
-    );
+    if (list.length === 0) {
+      // 未登録の地域（県管理河川の登録が無い都道府県など）では、何度クリックしても
+      // 見つからない。データがある範囲を示して空振りを減らす。
+      suibou.riverFilter = null;
+      if (suibou.layers.range) {
+        suibouPanel.setStatus(
+          'この地点を浸水させる想定破堤点は登録されていません。青く塗られた「検索可能範囲」の中をクリックしてください。',
+        );
+      } else {
+        suibouPanel.setStatus(
+          'この地点を浸水させる想定破堤点は登録されていません。データがある範囲を表示して確認できます。',
+          {
+            label: '検索可能範囲を表示',
+            onClick: () => {
+              suibou.layers.range = true;
+              setRange(map, true, 0);
+              suibouPanel.setStatus(
+                '青く塗られた範囲が、浸水ナビがデータを持っている範囲です。その中をクリックしてください。',
+              );
+            },
+          },
+        );
+      }
+    } else {
+      suibou.riverFilter = null;
+      suibouPanel.setStatus(
+        `${list.length}件の想定破堤点が見つかりました。地図上の点を選ぶと、経過時間ごとの浸水範囲を表示します。`,
+      );
+    }
     suibouPanel.setSuggestion(list.find((b) => b.isDepthMax) ?? null);
     suibouPanel.render();
   } catch (e) {

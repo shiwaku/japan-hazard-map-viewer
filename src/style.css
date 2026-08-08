@@ -962,3 +962,46 @@ body {
   text-decoration: none;
   font-weight: 700;
 }
+
+/* 浸水ナビ: 状態メッセージに添える操作ボタン・河川の絞り込み */
+.suibou-action {
+  margin: 0 8px 8px;
+  align-self: start;
+}
+
+.suibou-action[hidden] {
+  display: none;
+}
+
+.suibou-pick {
+  display: grid;
+  gap: 8px;
+  margin: 0 8px 8px;
+}
+
+.suibou-pick[hidden] {
+  display: none;
+}
+
+.suibou-pick-label {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.suibou-pick-label[hidden] {
+  display: none;
+}
+
+.suibou-pick select {
+  width: 100%;
+  padding: 5px 6px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--surface-solid);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
