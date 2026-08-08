@@ -6,6 +6,7 @@
 
 - 対象 API 仕様書: 「浸水ナビ API 仕様及び使用方法の説明書」3.2 版（令和 5 年 3 月）
 - 参考実装: `nobeoka-city`（Next.js + React hooks、延岡市域向け）
+- 関連: [浸水ナビの対象河川数と、重ねるハザードマップとの差異](suibou-navi-river-coverage.md)
 
 ---
 

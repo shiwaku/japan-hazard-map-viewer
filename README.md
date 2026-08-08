@@ -35,7 +35,9 @@ https://shiwaku.github.io/japan-hazard-map-viewer/#16.29/35.733868/139.797143/22
 公開APIには含まれず、海岸リストの実データも「テスト海岸」1件のみでした。
 津波・高潮は、ハザードマップポータルの津波浸水想定・高潮浸水想定区域（法に基づく静的な指定区域）で確認してください。
 
-設計の詳細と API 仕様の要点は [`docs/suibou-navi-design.md`](docs/suibou-navi-design.md) を参照してください。
+設計の詳細と API 仕様の要点は [`docs/suibou-navi-design.md`](docs/suibou-navi-design.md)、
+対象河川の網羅性（浸水ナビ 4,204河川 と 重ねるハザードマップ の差異）は
+[`docs/suibou-navi-river-coverage.md`](docs/suibou-navi-river-coverage.md) を参照してください。
 
 PWA（`manifest.webmanifest` + Service Worker）に対応しており、ホーム画面に追加してスタンドアロン表示できます。
 Service Worker は意図的にキャッシュを持たず、常に最新を取得します（古いハザード情報を掴ませないため）。
