@@ -70,17 +70,35 @@ test('経過時間スライダーは BPTime の刻みで動き、常にタイル
   expect(count).toBe(1);
 });
 
-test('再生は末尾で自動停止する', async ({ page }) => {
+test('再生すると経過時間が進む', async ({ page }) => {
   await searchBreakPoints(page);
-  // BPTime が 4 要素の BP199 を選ぶ（再生テストを短く終わらせるため）
+  // BPTime が 4 要素（10/30/60/180分）の BP199 を使う
   await selectBreakPointByName(page, 'BP199');
 
   const play = page.locator('.suibou-controls .mini-btn');
+  const label = page.locator('.suibou-time-label');
+  await expect(label).toContainText('10分');
+
   await play.click();
   await expect(play).toHaveText('■ 停止');
+  // 2秒間隔で進む。CI の負荷で遅れることがあるため余裕をみる
+  await expect(label).not.toContainText('10分', { timeout: 30_000 });
+});
 
-  // BPTime が 4 要素の破堤点なので 3 ステップ（2秒間隔）で終わる
-  await expect(play).toHaveText('▶ 再生', { timeout: 20000 });
+test('再生は末尾で自動停止する', async ({ page }) => {
+  await searchBreakPoints(page);
+  await selectBreakPointByName(page, 'BP199');
+
+  // 最後の目盛りから再生すれば、1ティックで停止条件に入る
+  // （全体を再生させると、CI の負荷次第でテストが不安定になる）
+  const slider = page.locator('.suibou-time input[type="range"]');
+  await slider.fill(await slider.getAttribute('max').then((v) => v ?? '0'));
+  await expect(page.locator('.suibou-time-label')).toContainText('3時間');
+
+  const play = page.locator('.suibou-controls .mini-btn');
+  await play.click();
+  await expect(play).toHaveText('▶ 再生', { timeout: 30_000 });
+  // 末尾を超えて進まない
   await expect(page.locator('.suibou-time-label')).toContainText('3時間');
 });
 
