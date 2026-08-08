@@ -24,6 +24,9 @@ import {
 
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 
+/** 検索可能範囲の不透明度 */
+const RANGE_OPACITY = 0.15;
+
 /** 破堤点レイヤーのIDから、時系列レイヤーのIDを作る */
 function timeseriesLayerId(bp: BreakPoint, minutes: number): string {
   return `${TIMESERIES_PREFIX}${bp.ID}-${String(minutes).padStart(5, '0')}`;
@@ -90,6 +93,12 @@ export function setBreakPoints(map: MlMap, points: BreakPoint[]): void {
       },
     })),
   });
+}
+
+/** 破堤点を河川名で絞り込む（null＝すべて表示） */
+export function setRiverFilter(map: MlMap, river: string | null): void {
+  if (!map.getLayer(POINTS_LAYER)) return;
+  map.setFilter(POINTS_LAYER, river ? ['==', ['get', 'river'], river] : null);
 }
 
 /** 選択中の破堤点をハイライトする */
@@ -231,10 +240,12 @@ export function setRange(map: MlMap, on: boolean, csvScale = 0): void {
     removeRaster(map, SUIBOU_RANGE_LAYER);
     return;
   }
+  // 塗り一色のタイルなので、濃いと地図が青一色になって他が読めない。
+  // 「データがある範囲」が分かる程度の淡い着色に留める。
   ensureRaster(
     map,
     { id: SUIBOU_RANGE_LAYER, url: rangeTileUrl(csvScale), slot: 'suibou-range' },
-    0.35,
+    RANGE_OPACITY,
   );
 }
 
