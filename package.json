@@ -1,9 +1,9 @@
 {
-  "name": "japan-hazard-map-on-maplibre",
+  "name": "japan-hazard-map-viewer",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "全国ハザードマップ on MapLibre GL JS",
+  "description": "全国ハザードマップビューワ（MapLibre GL JS）",
   "license": "MIT",
   "scripts": {
     "dev": "vite",

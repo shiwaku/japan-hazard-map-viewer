@@ -1,16 +1,17 @@
 import maplibregl, { type Map as MlMap, type LngLat } from 'maplibre-gl';
-import { HAZARD_LAYERS } from '../config/hazard-layers';
+import type { HazardLayerDef } from '../config/hazard-layers';
 import { getLegendItemAt } from '../lib/geo';
 
 /**
- * 表示中の浸水深対応ハザードレイヤがあれば、クリック地点のPNGタイルのRGBから
- * 想定浸水深（または継続時間）を読み取りポップアップ表示する。
+ * 表示中のハザードが浸水深（または浸水継続時間）を持つ場合、クリック地点の
+ * PNGタイルのRGBから該当する区分を読み取ってポップアップ表示する。
  */
-export async function showDepthPopup(map: MlMap, lngLat: LngLat): Promise<void> {
-  const def = HAZARD_LAYERS.find(
-    (d) => d.depth && map.getLayer(d.id) && map.getLayoutProperty(d.id, 'visibility') === 'visible',
-  );
-  if (!def?.depth) return;
+export async function showDepthPopup(
+  map: MlMap,
+  lngLat: LngLat,
+  def: HazardLayerDef,
+): Promise<void> {
+  if (!def.depth || !map.getLayer(def.id)) return;
 
   const item = await getLegendItemAt(
     def.depth.legend,

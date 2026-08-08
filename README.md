@@ -2,9 +2,27 @@
 
 ## Public Website
 
-https://shiwaku.github.io/japan-hazard-map-on-maplibre/#16.29/35.733868/139.797143/22.4/67
+https://shiwaku.github.io/japan-hazard-map-viewer/#16.29/35.733868/139.797143/22.4/67
 
-![image](https://github.com/shi-works/japan-hazard-map-on-maplibre-gl-js/assets/71203808/6164ba8e-aa32-41b4-84ad-6203c5096863)
+![全国ハザードマップ（洪水浸水想定区域 × 地形 × PLATEAU 3D建物）](docs/screenshot-light.png)
+
+<p>
+  <img src="docs/screenshot-dark.png" width="62%" alt="ダークテーマ" />
+  <img src="docs/screenshot-mobile.png" width="19%" alt="モバイル（ボトムシート）" />
+</p>
+
+## 画面の使い方
+
+- **左サイドパネル** … ハザードマップの種類（単一選択）、重ねる情報（避難場所・伝承碑・100mメッシュ人口・PLATEAU建物・地形）、視点（2D / 3D）。
+  選択中のハザードの直下に不透明度スライダーと凡例をインライン表示します。各行の `i` ボタンでそのレイヤーの説明を開閉できます。
+  スマホではボトムシートになり、初期状態では畳まれています。
+- **ヘッダのボタン** … 🌙/☀️ でライト・ダークテーマ切替（選択は `localStorage` に保存）、▴/▾ でパネル開閉。
+- **右下** … 背景地図の切替（地図＝国土地理院 最適化ベクトルタイル淡色 / 写真＝全国最新写真）、スケール、出典。
+- **地図クリック** … 避難場所・伝承碑・人口メッシュの上ではその属性を、それ以外では選択中ハザードの想定浸水深（PNGタイルのRGBから判定）をポップアップ表示します。
+- **`?debug`** … 診断HUD（ビルド時刻・ズーム・WebGLコンテキスト消失回数・エラーログ）を表示します。
+
+PWA（`manifest.webmanifest` + Service Worker）に対応しており、ホーム画面に追加してスタンドアロン表示できます。
+Service Worker は意図的にキャッシュを持たず、常に最新を取得します（古いハザード情報を掴ませないため）。
 
 ## 開発
 
@@ -12,7 +30,7 @@ Vite + TypeScript で構成しています。
 
 ```bash
 npm install      # 依存のインストール
-npm run dev      # 開発サーバー（http://localhost:5173/japan-hazard-map-on-maplibre/）
+npm run dev      # 開発サーバー（http://localhost:5173/japan-hazard-map-viewer/）
 npm run build    # 型チェック（tsc）＋本番ビルド（dist/ に出力）
 npm run preview  # ビルド成果物のローカルプレビュー
 npm run lint     # ESLint
@@ -21,16 +39,19 @@ npm run format   # Prettier で整形
 
 ### 構成
 
-- `index.html` … エントリ（UIの骨組みのみ。凡例・ラジオは実行時に生成）
+- `index.html` … エントリ（パネルの骨組みのみ。行・凡例・スライダーは実行時に生成）
 - `src/` … TypeScript ソース
-  - `config/hazard-layers.ts` … 全ハザードレイヤ（タイルURL・凡例・避難場所フィルタ・浸水深）の定義
+  - `config/hazard-layers.ts` … 全ハザードレイヤ（タイルURL・凡例・説明・避難場所フィルタ・浸水深）の定義
+  - `config/overlays.ts` … 重ねる情報（避難場所・伝承碑・人口・PLATEAU・地形）の定義
+  - `map/basemap.ts` … 背景スタイル生成。ダークは淡色スタイルの色を明度反転して機械的に作る
   - `map/` `layers/` `ui/` `popups/` `routing/` `lib/` … 機能ごとのモジュール
-- `public/` … 静的アセット（`std_1.json` / `std_2.json` / `img` / `gif` / `legend`）
+  - `pale-style.json` … 国土地理院 最適化ベクトルタイル（淡色地図風スタイル）
+- `public/` … 静的アセット（`icons` / `manifest.webmanifest` / `sw.js` / `img` / `gif` / `legend`）
 
 ### デプロイ
 
 `main` ブランチへの push で GitHub Actions（`.github/workflows/deploy.yml`）が `npm run build` を実行し、GitHub Pages に公開します。GitHub リポジトリの Settings → Pages で「Source」を **GitHub Actions** に設定してください。
-公開URLは `https://shiwaku.github.io/japan-hazard-map-on-maplibre/` で、`vite.config.ts` の `base` がこのパスに対応しています。
+公開URLは `https://shiwaku.github.io/japan-hazard-map-viewer/` で、`vite.config.ts` の `base` がこのパスに対応しています。
 
 ## 国土地理院
 
@@ -75,8 +96,11 @@ npm run format   # Prettier で整形
 
 ## 背景地図及び地形データ
 
-- 国土地理院 最適化ベクトルタイル
+- 国土地理院 最適化ベクトルタイル（淡色地図風スタイル）
   - 出典：https://github.com/gsi-cyberjapan/optimal_bvmap
+  - ライセンス：[国土地理院コンテンツ利用規約](https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html)に従い、出典明示により、転載も含め使用可
+- 国土地理院 地理院タイル（全国最新写真（シームレス））
+  - 出典：https://maps.gsi.go.jp/development/ichiran.html
   - ライセンス：[国土地理院コンテンツ利用規約](https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html)に従い、出典明示により、転載も含め使用可
 - 国土地理院 地理院タイル（陰影起伏図）
   - 出典：https://maps.gsi.go.jp/development/ichiran.html#hillshademap

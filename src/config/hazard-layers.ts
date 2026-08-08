@@ -27,6 +27,8 @@ export interface HazardLayerDef {
   id: string;
   /** ラジオボタンのラベル */
   label: string;
+  /** レイヤ説明（パネルの i ボタンで開閉表示） */
+  desc: string;
   /** ラスタタイルURLテンプレート */
   tiles: string;
   legend: HazardLegend;
@@ -90,10 +92,17 @@ const SWATCHES_HIGHTIDE_TSUNAMI: LegendSwatch[] = [
   { color: 'rgb(255, 255, 179)', label: '0.3m未満' },
 ];
 
+// 土砂災害の「警戒区域」と「危険箇所」の違い（説明文で共通して使う注記）
+const NOTE_KEIKAI =
+  '土砂災害防止法に基づき都道府県が指定した区域です。特別警戒区域は建築物に損壊が生じ、住民等の生命・身体に著しい危害が生ずるおそれがある範囲です。';
+const NOTE_KIKEN =
+  '都道府県の調査で把握された、災害のおそれがある箇所です。法律に基づく指定区域ではないため、警戒区域とは位置づけが異なります。';
+
 export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'flood_l2_shinsuishin',
     label: '洪水浸水想定区域（想定最大規模）',
+    desc: '想定し得る最大規模の降雨で河川が氾濫した場合に想定される浸水の深さです。水防法に基づき国・都道府県が公表しています。地図をクリックするとその地点の想定浸水深を表示します。',
     tiles: `${DISAPORTAL}/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png`,
     hinanbashoProperty: '洪水',
     legend: { title: '洪水浸水想定区域<br>(想定最大規模)', swatches: SWATCHES_SHINSUISHIN },
@@ -102,6 +111,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'flood_l1_shinsuishin',
     label: '洪水浸水想定区域（計画規模（現在の凡例））',
+    desc: '河川整備の計画上の目標としている規模の降雨で河川が氾濫した場合に想定される浸水の深さです。想定最大規模より発生頻度が高い一方、浸水範囲は狭くなります。',
     tiles: `${DISAPORTAL}/01_flood_l1_shinsuishin_newlegend_data/{z}/{x}/{y}.png`,
     hinanbashoProperty: '洪水',
     legend: { title: '洪水浸水想定区域<br>(計画規模(現在の凡例))', swatches: SWATCHES_SHINSUISHIN },
@@ -110,6 +120,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'flood_l2_keizoku',
     label: '浸水継続時間（想定最大規模）',
+    desc: '想定最大規模の洪水で、浸水した状態が続くと想定される時間です。長時間の浸水は電気・上下水道の停止や在宅避難の可否に影響するため、立退き避難の判断材料になります。',
     tiles: `${DISAPORTAL}/01_flood_l2_keizoku_data/{z}/{x}/{y}.png`,
     hinanbashoProperty: '洪水',
     legend: {
@@ -129,6 +140,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'flood_l2_kaokutoukai_hanran',
     label: '家屋倒壊等氾濫想定区域（氾濫流）',
+    desc: '氾濫した水の流れによって、木造家屋が倒壊するおそれがある範囲です。この区域では上階への垂直避難では不十分で、区域外への立退き避難が必要とされています。',
     tiles: `${DISAPORTAL}/01_flood_l2_kaokutoukai_hanran_data/{z}/{x}/{y}.png`,
     hinanbashoProperty: '洪水',
     legend: {
@@ -139,6 +151,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'flood_l2_kaokutoukai_kagan',
     label: '家屋倒壊等氾濫想定区域（河岸侵食）',
+    desc: '洪水で河岸が削られ、家屋が流失・倒壊するおそれがある範囲です。氾濫流と同じく、区域外への立退き避難が必要とされています。',
     tiles: `${DISAPORTAL}/01_flood_l2_kaokutoukai_kagan_data/{z}/{x}/{y}.png`,
     hinanbashoProperty: '洪水',
     legend: {
@@ -149,6 +162,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'dosekiryukeikaikuiki',
     label: '土砂災害警戒区域（土石流）',
+    desc: `土石流によって住民等の生命・身体に危害が生ずるおそれがある区域です。${NOTE_KEIKAI}`,
     tiles: `${DISAPORTAL}/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png`,
     hinanbashoProperty: '崖崩れ、土石流及び地滑り',
     legend: {
@@ -162,6 +176,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'kyukeishakeikaikuiki',
     label: '土砂災害警戒区域（急傾斜地の崩壊）',
+    desc: `急傾斜地の崩壊（がけ崩れ）によって住民等の生命・身体に危害が生ずるおそれがある区域です。${NOTE_KEIKAI}`,
     tiles: `${DISAPORTAL}/05_kyukeishakeikaikuiki/{z}/{x}/{y}.png`,
     hinanbashoProperty: '崖崩れ、土石流及び地滑り',
     legend: {
@@ -175,6 +190,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'jisuberikeikaikuiki',
     label: '土砂災害警戒区域（地すべり）',
+    desc: `地すべりによって住民等の生命・身体に危害が生ずるおそれがある区域です。${NOTE_KEIKAI}`,
     tiles: `${DISAPORTAL}/05_jisuberikeikaikuiki/{z}/{x}/{y}.png`,
     hinanbashoProperty: '崖崩れ、土石流及び地滑り',
     legend: {
@@ -188,6 +204,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'dosekiryukikenkeiryu',
     label: '土石流危険渓流',
+    desc: `土石流が発生するおそれがある渓流です。${NOTE_KIKEN}`,
     tiles: `${DISAPORTAL}/05_dosekiryukikenkeiryu/{z}/{x}/{y}.png`,
     hinanbashoProperty: '崖崩れ、土石流及び地滑り',
     legend: { swatches: [{ color: 'rgb(242, 136, 76)', label: '土石流危険渓流' }] },
@@ -195,6 +212,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'kyukeisyachihoukai',
     label: '急傾斜地崩壊危険箇所',
+    desc: `がけ崩れが発生するおそれがある箇所です。${NOTE_KIKEN}`,
     tiles: `${DISAPORTAL}/05_kyukeisyachihoukai/{z}/{x}/{y}.png`,
     hinanbashoProperty: '崖崩れ、土石流及び地滑り',
     legend: { swatches: [{ color: 'rgb(218, 218, 254)', label: '急傾斜地崩壊危険箇所' }] },
@@ -202,6 +220,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'jisuberikikenkasyo',
     label: '地すべり危険箇所',
+    desc: `地すべりが発生するおそれがある箇所です。${NOTE_KIKEN}`,
     tiles: `${DISAPORTAL}/05_jisuberikikenkasyo/{z}/{x}/{y}.png`,
     hinanbashoProperty: '崖崩れ、土石流及び地滑り',
     legend: { swatches: [{ color: 'rgb(254, 230, 218)', label: '地すべり危険箇所' }] },
@@ -209,6 +228,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'nadarekikenkasyo',
     label: '雪崩危険箇所',
+    desc: `雪崩が発生するおそれがある箇所です。${NOTE_KIKEN}`,
     tiles: `${DISAPORTAL}/05_nadarekikenkasyo/{z}/{x}/{y}.png`,
     hinanbashoProperty: '崖崩れ、土石流及び地滑り',
     legend: { swatches: [{ color: 'rgb(254, 254, 76)', label: '雪崩危険箇所' }] },
@@ -216,6 +236,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'hightide_l2_shinsuishin',
     label: '高潮浸水想定区域',
+    desc: '想定し得る最大規模の高潮で浸水する範囲と深さです。台風の規模や経路などを最大限の悪条件で設定して算定されており、水防法に基づき都道府県が公表しています。',
     tiles: `${DISAPORTAL}/03_hightide_l2_shinsuishin_data/{z}/{x}/{y}.png`,
     hinanbashoProperty: '高潮',
     legend: { title: '高潮浸水想定区域', swatches: SWATCHES_HIGHTIDE_TSUNAMI },
@@ -224,6 +245,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'tsunami_newlegend',
     label: '津波浸水想定',
+    desc: '最大クラスの津波が悪条件下で発生した場合に想定される浸水の範囲と深さです。津波防災地域づくり法に基づき都道府県が設定しています。',
     tiles: `${DISAPORTAL}/04_tsunami_newlegend_data/{z}/{x}/{y}.png`,
     hinanbashoProperty: '津波',
     legend: { title: '津波浸水想定', swatches: SWATCHES_HIGHTIDE_TSUNAMI },
@@ -232,6 +254,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'naisui_data',
     label: '内水（雨水出水）浸水想定区域(一部の地域のみ)',
+    desc: '下水道や水路の排水能力を超える大雨で雨水があふれる（内水氾濫）場合の浸水想定です。公表している市町村が限られるため、表示されるのは一部の地域のみです。',
     tiles: `${DISAPORTAL}/02_naisui_data/{z}/{x}/{y}.png`,
     hinanbashoProperty: '内水',
     legend: {
