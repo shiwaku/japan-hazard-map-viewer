@@ -1,15 +1,16 @@
-import maplibregl from 'maplibre-gl';
+import maplibregl, { type StyleSpecification } from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import MaplibreGeocoder, {
   type MaplibreGeocoderApi,
   type MaplibreGeocoderApiConfig,
 } from '@maplibre/maplibre-gl-geocoder';
-import { assetUrl } from '../lib/geo';
 
 const ATTRIBUTION =
-  '<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a> | ' +
   '<a href="https://twitter.com/shi__works" target="_blank">X(旧Twitter)</a> | ' +
-  '<a href="https://github.com/shiwaku/japan-hazard-map-on-maplibre" target="_blank">GitHub</a> ';
+  '<a href="https://github.com/shiwaku/japan-hazard-map-viewer" target="_blank">GitHub</a> ';
+
+/** 3D 表示時のピッチ（2D は 0） */
+export const PITCH_3D = 65;
 
 // 国土地理院 地名検索API を使ったジオコーダ
 const geocoderApi: MaplibreGeocoderApi = {
@@ -48,27 +49,38 @@ const geocoderApi: MaplibreGeocoderApi = {
 };
 
 /** 地図とコントロール一式を生成して返す */
-export function createMap(): maplibregl.Map {
+export function createMap(style: StyleSpecification, isMobile: boolean): maplibregl.Map {
   const protocol = new Protocol();
   maplibregl.addProtocol('pmtiles', protocol.tile);
 
   const map = new maplibregl.Map({
     container: 'map',
-    style: assetUrl('std_1.json'),
+    style,
     center: [131.673877, 32.588641],
     zoom: 15.5,
     minZoom: 1,
     maxZoom: 23,
-    pitch: 65,
+    pitch: PITCH_3D,
     maxPitch: 85,
     bearing: 0,
+    // 地図位置を URL の #ズーム/緯度/経度 に反映（共有・リロード時の位置維持）
     hash: true,
     attributionControl: false,
+    // モバイルはGPU/メモリが限られるため保持タイル数を絞る。地形＋3D建物＋ラスタを
+    // 同時に描くとメモリ逼迫で WebGL コンテキストが失われ、地図がまるごと消える
+    // （＝スマホで真っ白）事象があるため、その圧を下げる。
+    maxTileCacheSize: isMobile ? 24 : undefined,
+    // 近年のスマホは DPR=3。描画バッファ等の GPU メモリは DPR の2乗で効くため、
+    // モバイルでは 2 に抑える（2x も十分 Retina 画質）。
+    pixelRatio: isMobile ? Math.min(window.devicePixelRatio || 1, 2) : undefined,
   });
 
   map.addControl(new MaplibreGeocoder(geocoderApi, { maplibregl }), 'top-right');
-  map.addControl(new maplibregl.NavigationControl());
-  map.addControl(new maplibregl.FullscreenControl());
+  map.addControl(
+    new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }),
+    'top-right',
+  );
+  map.addControl(new maplibregl.FullscreenControl(), 'top-right');
   map.addControl(
     new maplibregl.GeolocateControl({
       positionOptions: { enableHighAccuracy: false },
@@ -76,13 +88,15 @@ export function createMap(): maplibregl.Map {
       trackUserLocation: true,
       showUserLocation: true,
     }),
+    'top-right',
   );
-  // スケールバーは右下へ（左下の不透明度スライダーとの重なりを回避）
+  // 左下はサイドパネルの裏になるため、スケール・出典はすべて右下へ寄せる
   map.addControl(new maplibregl.ScaleControl({ maxWidth: 200, unit: 'metric' }), 'bottom-right');
-  map.addControl(
-    new maplibregl.AttributionControl({ compact: true, customAttribution: ATTRIBUTION }),
-  );
-  map.addControl(new maplibregl.TerrainControl({ source: 'aist-dem', exaggeration: 1 }));
 
   return map;
+}
+
+/** 出典表記コントロール（背景切替のあとに足したいので分離） */
+export function attributionControl(): maplibregl.AttributionControl {
+  return new maplibregl.AttributionControl({ compact: true, customAttribution: ATTRIBUTION });
 }

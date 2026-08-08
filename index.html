@@ -2,44 +2,91 @@
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+    />
     <title>全国ハザードマップ</title>
+    <meta
+      name="description"
+      content="国土地理院ハザードマップポータルのデータを MapLibre GL JS で3D表示するビューワ。洪水・土砂災害・高潮・津波・内水の想定区域を、地形とPLATEAU建物に重ねて確認できます。"
+    />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#2563eb" />
+    <link rel="icon" type="image/png" href="icons/favicon-32.png" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ハザードマップ" />
   </head>
   <body>
     <div id="map"></div>
 
-    <!-- ハザードマップ種別の選択（ラジオは layer-switcher が生成） -->
-    <div id="info">
-      <details>
-        <summary class="yubi"><strong>ハザードマップの種類</strong></summary>
-        <fieldset>
-          <div class="radio-button-container">
-            <div class="column" id="layer-radios"></div>
+    <section id="panel" class="panel" aria-label="コントロールパネル">
+      <header class="panel-head">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">🌊</span>
+          <h1>全国ハザードマップ</h1>
+        </div>
+        <div class="head-actions">
+          <button
+            id="theme-btn"
+            class="icon-btn"
+            type="button"
+            title="テーマ切替"
+            aria-label="テーマ切替"
+          ></button>
+          <button
+            id="collapse-btn"
+            class="icon-btn"
+            type="button"
+            title="パネル開閉"
+            aria-label="パネル開閉"
+          ></button>
+        </div>
+      </header>
+
+      <div id="panel-body" class="panel-body">
+        <div class="field">
+          <div class="field-head">
+            <span class="field-label">ハザードマップ</span>
           </div>
-        </fieldset>
-      </details>
-    </div>
+          <div id="hazards" class="toggles"></div>
+        </div>
 
-    <!-- 不透明度スライダー -->
-    <div class="map-overlay top">
-      <div class="map-overlay-inner">
-        <label>ハザードマップ 不透明度: <span id="slider-opacity-value">80%</span></label>
-        <input id="slider-opacity" type="range" min="0" max="100" step="1" value="80" />
+        <div class="field">
+          <div class="field-head">
+            <span class="field-label">重ねる情報</span>
+          </div>
+          <div id="overlays" class="toggles"></div>
+        </div>
+
+        <div class="field">
+          <div class="field-head">
+            <span class="field-label">視点</span>
+          </div>
+          <div id="pitch-seg" class="seg"></div>
+        </div>
       </div>
-    </div>
 
-    <!-- 凡例（legend が生成） -->
-    <div id="legends"></div>
-
-    <!-- 避難経路の速度プロファイル（経路探索 無効化中） -->
-    <!--
-    <div class="control-panel">
-      <h4>避難経路</h4>
-      <button id="carButton" type="button">自動車</button>
-      <button id="personButton" type="button">一般の人</button>
-      <button id="elderlyButton" type="button">高齢者</button>
-    </div>
-    -->
+      <footer class="panel-foot">
+        出典:
+        <a
+          href="https://disaportal.gsi.go.jp/hazardmap/copyright/opendata.html"
+          target="_blank"
+          rel="noopener"
+          >ハザードマップポータルサイト</a
+        >（国土地理院）<br />
+        <span class="foot-detail">
+          背景: 国土地理院 最適化ベクトルタイル / 全国最新写真 / 陰影起伏図<br />
+          地形: 産業技術総合研究所 シームレス標高タイル<br />
+          建物: 国土交通省 3D都市モデル PLATEAU<br />
+        </span>
+        ※表示は各機関の公表データに基づく想定です。避難の判断は自治体の情報に従ってください。<br />
+        <span id="build-ver" class="build-ver"></span>
+      </footer>
+    </section>
 
     <script type="module" src="/src/main.ts"></script>
   </body>
