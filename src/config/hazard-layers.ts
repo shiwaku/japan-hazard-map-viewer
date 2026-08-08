@@ -94,15 +94,15 @@ const SWATCHES_HIGHTIDE_TSUNAMI: LegendSwatch[] = [
 
 // 土砂災害の「警戒区域」と「危険箇所」の違い（説明文で共通して使う注記）
 const NOTE_KEIKAI =
-  '土砂災害防止法に基づき都道府県が指定した区域です。特別警戒区域は建築物に損壊が生じ、住民等の生命・身体に著しい危害が生ずるおそれがある範囲です。';
+  '土砂災害防止法に基づき都道府県知事が指定した区域です。特別警戒区域は、急傾斜地の崩壊等が発生した場合に建築物に損壊が生じ、住民等の生命・身体に著しい危害が生ずるおそれがある範囲です。';
 const NOTE_KIKEN =
-  '都道府県の調査で把握された、災害のおそれがある箇所です。法律に基づく指定区域ではないため、警戒区域とは位置づけが異なります。';
+  '都道府県の調査で把握された、災害のおそれがある箇所です。土砂災害防止法に基づく指定区域ではないため、土砂災害警戒区域とは位置づけが異なります。';
 
 export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'flood_l2_shinsuishin',
     label: '洪水浸水想定区域（想定最大規模）',
-    desc: '想定し得る最大規模の降雨で河川が氾濫した場合に想定される浸水の深さです。水防法に基づき国・都道府県が公表しています。地図をクリックするとその地点の想定浸水深を表示します。',
+    desc: '想定し得る最大規模の降雨（想定最大規模降雨）で河川が氾濫した場合に想定される浸水の深さです。水防法に基づき、国土交通大臣または都道府県知事が洪水浸水想定区域として指定します。地図をクリックするとその地点の想定浸水深を表示します。',
     tiles: `${DISAPORTAL}/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png`,
     hinanbashoProperty: '洪水',
     legend: { title: '洪水浸水想定区域<br>(想定最大規模)', swatches: SWATCHES_SHINSUISHIN },
@@ -236,7 +236,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'hightide_l2_shinsuishin',
     label: '高潮浸水想定区域',
-    desc: '想定し得る最大規模の高潮で浸水する範囲と深さです。台風の規模や経路などを最大限の悪条件で設定して算定されており、水防法に基づき都道府県が公表しています。',
+    desc: '想定し得る最大規模の高潮で浸水する範囲と深さです。台風の規模や経路などを最大限の悪条件で設定して算定されており、水防法に基づき都道府県知事が高潮浸水想定区域として指定します。',
     tiles: `${DISAPORTAL}/03_hightide_l2_shinsuishin_data/{z}/{x}/{y}.png`,
     hinanbashoProperty: '高潮',
     legend: { title: '高潮浸水想定区域', swatches: SWATCHES_HIGHTIDE_TSUNAMI },
@@ -245,7 +245,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'tsunami_newlegend',
     label: '津波浸水想定',
-    desc: '最大クラスの津波が悪条件下で発生した場合に想定される浸水の範囲と深さです。津波防災地域づくり法に基づき都道府県が設定しています。',
+    desc: '最大クラスの津波が悪条件下で発生した場合に想定される浸水の区域と水深です。津波防災地域づくり法に基づき都道府県知事が津波浸水想定として設定します。',
     tiles: `${DISAPORTAL}/04_tsunami_newlegend_data/{z}/{x}/{y}.png`,
     hinanbashoProperty: '津波',
     legend: { title: '津波浸水想定', swatches: SWATCHES_HIGHTIDE_TSUNAMI },
@@ -254,7 +254,7 @@ export const HAZARD_LAYERS: HazardLayerDef[] = [
   {
     id: 'naisui_data',
     label: '内水（雨水出水）浸水想定区域(一部の地域のみ)',
-    desc: '下水道や水路の排水能力を超える大雨で雨水があふれる（内水氾濫）場合の浸水想定です。公表している市町村が限られるため、表示されるのは一部の地域のみです。',
+    desc: '下水道や水路の排水能力を超える大雨で雨水があふれる（内水氾濫）場合の浸水想定です。水防法に基づき、排水施設の管理者である都道府県知事または市町村長が雨水出水浸水想定区域として指定します。指定・公表が進んでいる地域が限られるため、表示されるのは一部の地域のみです。',
     tiles: `${DISAPORTAL}/02_naisui_data/{z}/{x}/{y}.png`,
     hinanbashoProperty: '内水',
     legend: {
