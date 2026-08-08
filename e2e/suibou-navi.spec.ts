@@ -93,29 +93,43 @@ async function selectBreakPointByName(
   page: import('@playwright/test').Page,
   name: string,
 ): Promise<void> {
-  const pt = await page.evaluate((target) => {
-    const m = (
-      window as unknown as {
-        __map: {
-          queryRenderedFeatures(o: { layers: string[] }): {
-            properties: { name: string };
-            geometry: { coordinates: [number, number] };
-          }[];
-          project(c: [number, number]): { x: number; y: number };
-        };
-      }
-    ).__map;
-    const f = m
-      .queryRenderedFeatures({ layers: ['suibou-points'] })
-      .find((x) => x.properties.name === target);
-    if (!f) return null;
-    const q = m.project(f.geometry.coordinates);
-    return { x: Math.round(q.x), y: Math.round(q.y) };
-  }, name);
+  const locate = () =>
+    page.evaluate((target) => {
+      const m = (
+        window as unknown as {
+          __map: {
+            queryRenderedFeatures(o: { layers: string[] }): {
+              properties: { name: string };
+              geometry: { coordinates: [number, number] };
+            }[];
+            project(c: [number, number]): { x: number; y: number };
+          };
+        }
+      ).__map;
+      const f = m
+        .queryRenderedFeatures({ layers: ['suibou-points'] })
+        .find((x) => x.properties.name === target);
+      if (!f) return null;
+      const q = m.project(f.geometry.coordinates);
+      return { x: Math.round(q.x), y: Math.round(q.y) };
+    }, name);
 
-  expect(pt, `${name} が描画されていない`).not.toBeNull();
-  await page.mouse.click(pt!.x, pt!.y);
-  await expect(page.locator('.suibou-title')).toContainText(name);
+  // 円が描画されるまで待つ（描画前は queryRenderedFeatures が空を返す）
+  await expect.poll(locate, { message: `${name} が描画されない` }).not.toBeNull();
+
+  // 半径 5px の的なので、負荷でこぼしたときは一度だけ撃ち直す
+  const title = page.locator('.suibou-title');
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const pt = await locate();
+    if (!pt) continue;
+    await page.mouse.click(pt.x, pt.y);
+    try {
+      await expect(title).toContainText(name, { timeout: 5000 });
+      return;
+    } catch {
+      if (attempt === 1) throw new Error(`${name} を選択できなかった`);
+    }
+  }
 }
 
 test('河川で絞り込める', async ({ page }) => {

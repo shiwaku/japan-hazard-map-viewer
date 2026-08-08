@@ -76,7 +76,7 @@ E2E は `npm run build` した成果物を `vite preview` で配信して実行�
   - `pale-style.json` … 国土地理院 最適化ベクトルタイル（淡色地図風スタイル）
 - `public/` … 静的アセット（`icons` / `manifest.webmanifest` / `sw.js` / `img` / `gif` / `legend`）
 - `e2e/` … Playwright の E2Eテスト（浸水ナビ API はモック）
-- `docs/` … 設計書・調査メモ
+- `docs/` … 設計書・調査メモ（[依存関係のメモ](docs/dependency-notes.md) に、上げられなかった依存とその理由）
 
 ### デプロイ
 
