@@ -165,6 +165,19 @@ test('破堤点が無い地点では検索可能範囲への案内を出す', as
   await expect(page.locator('.suibou-status')).toContainText('検索可能範囲');
 });
 
+test('浸水ナビが応答しないときはエラーを知らせる', async ({ page, context }) => {
+  await context.unroute('**/suiboumap.gsi.go.jp/**').catch(() => undefined);
+  await mockSuibouNavi(page, { breakPointStatus: 503 });
+
+  await page.locator('#suibou .layer-item .switch').first().click();
+  await page.locator('#map').click({ position: { x: 700, y: 400 } });
+
+  await expect(page.locator('.suibou-status')).toContainText('取得に失敗');
+  // 「該当なし」と取り違えず、案内ボタンも出さない
+  await expect(page.locator('.suibou-status')).not.toContainText('登録されていません');
+  await expect(page.locator('.suibou-suggest')).not.toBeVisible();
+});
+
 test('地図上の破堤点をクリックしても選択できる', async ({ page }) => {
   await searchBreakPoints(page);
 
