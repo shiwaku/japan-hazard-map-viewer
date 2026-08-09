@@ -38,6 +38,31 @@ test('パネルを畳むとスケールバーは地図の隅へ戻る', async ({
   await expect.poll(async () => (await scale.boundingBox())!.x).toBeLessThan(before.x);
 });
 
+test('大カテゴリーは見出しとして読め、説明が付く', async ({ page }) => {
+  await page.goto(`/${VIEW}`);
+  await waitForMap(page);
+
+  await expect(page.locator('#panel-body h2.field-label')).toHaveText([
+    'ハザードマップ',
+    '浸水シミュレーション',
+    '重ねる情報',
+    '視点',
+  ]);
+
+  // 「洪水の想定区域」と「浸水シミュレーション」の違いを説明で補っている（視点は自明なので無し）
+  await expect(page.locator('#panel-body .field-desc')).toHaveCount(3);
+
+  // 見出しが中の項目より小さいと、カテゴリーの切れ目として読まれない
+  const fontSize = (selector: string): Promise<number> =>
+    page
+      .locator(selector)
+      .first()
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  expect(await fontSize('h2.field-label')).toBeGreaterThanOrEqual(
+    await fontSize('.toggle .t-label'),
+  );
+});
+
 test('既定の視点は 2D', async ({ page }) => {
   // ハッシュを付けずに開く（＝URL 指定ではなくアプリの既定値を見る）
   await page.goto('/');
