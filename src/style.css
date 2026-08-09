@@ -17,6 +17,8 @@
   --shadow: 0 10px 30px -10px rgba(16, 24, 40, 0.35), 0 2px 8px -4px rgba(16, 24, 40, 0.2);
   --radius: 16px;
   --radius-sm: 10px;
+  /* パネルの幅。左下の地図コントロールを避けさせるのに使う */
+  --panel-w: 320px;
   color-scheme: light;
 }
 
@@ -66,7 +68,7 @@ body {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  width: 320px;
+  width: var(--panel-w);
   max-width: 88vw;
   /* backdrop-filter（すりガラス）は使わない。実GPUでの合成不具合により、
      内部スクロールを持つパネルで描画が破綻する（白化・欠け）ことがある。
@@ -673,6 +675,18 @@ body {
   color: var(--ink-2);
 }
 
+/* スケールバーは左下。既定ではパネルの裏に潜るので、パネル幅ぶん右へ寄せる。
+   （MapLibre 側がコントロールに 10px の余白を付けるので、実際はさらに 10px 外側） */
+.maplibregl-ctrl-bottom-left {
+  margin-left: var(--panel-w);
+}
+
+/* パネルを畳んだら左下は空くので、寄せをやめて地図の隅へ戻す。
+   :has() が使えない環境では上の寄せが残るだけで、重なりは起きない。 */
+body:has(.panel.collapsed) .maplibregl-ctrl-bottom-left {
+  margin-left: 0;
+}
+
 /* ===== ジオコーダ（地名検索） ===== */
 .maplibregl-ctrl-geocoder {
   font-family: var(--ui-font);
@@ -886,9 +900,15 @@ body {
     display: none;
   }
 
-  /* 畳んだパネルのヘッダ分だけ、右下の地図コントロールを持ち上げる */
-  .maplibregl-ctrl-bottom-right {
+  /* 畳んだパネルのヘッダ分だけ、下の地図コントロールを持ち上げる */
+  .maplibregl-ctrl-bottom-right,
+  .maplibregl-ctrl-bottom-left {
     margin-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* パネルは全幅のボトムシートになるので、左への寄せは不要 */
+  .maplibregl-ctrl-bottom-left {
+    margin-left: 0;
   }
 
   /* タッチ操作しやすいよう当たり判定を拡大 */
