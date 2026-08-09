@@ -57,7 +57,8 @@ export function createMap(style: StyleSpecification, isMobile: boolean): maplibr
     zoom: 15.5,
     minZoom: 1,
     maxZoom: 23,
-    pitch: PITCH_3D,
+    // 既定は 2D。3D は右の「視点」から切り替える（URL に #…/pitch があればそちらが優先）
+    pitch: 0,
     maxPitch: 85,
     bearing: 0,
     // 地図位置を URL の #ズーム/緯度/経度 に反映（共有・リロード時の位置維持）
@@ -104,7 +105,7 @@ export function attributionControl(): maplibregl.AttributionControl {
   return new maplibregl.AttributionControl({ compact: true });
 }
 
-/** スケールバー。左下はサイドパネルの裏になるため右下へ置く */
+/** スケールバー。左下に置き、パネルと重ならないよう CSS で右へ寄せる */
 export function scaleControl(): maplibregl.ScaleControl {
   return new maplibregl.ScaleControl({ maxWidth: 200, unit: 'metric' });
 }

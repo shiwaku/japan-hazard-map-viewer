@@ -51,7 +51,7 @@ const state: PanelState = {
   hazards: { [HAZARD_LAYERS[0].id]: true },
   hazardOpacity: {},
   overlays: initialOverlayState(),
-  pitch: '3d',
+  pitch: '2d',
   theme: initialTheme(),
 };
 const suibou = initialSuibouState();
@@ -74,10 +74,11 @@ const basemapCtrl = new BasemapControl(
   (next) => setBase(next),
 );
 // 右下は「先に追加したものほど下」に積まれる。
-// 下から順に 出典(ⓘ) → 背景切替 → スケール になるようこの順で追加する。
+// 下から順に 出典(ⓘ) → 背景切替 になるようこの順で追加する。
 map.addControl(attributionControl(), 'bottom-right');
 map.addControl(basemapCtrl, 'bottom-right');
-map.addControl(scaleControl(), 'bottom-right');
+// スケールは左下。パネルの裏に隠れないよう、CSS でパネル幅ぶん右へ寄せている
+map.addControl(scaleControl(), 'bottom-left');
 // compact 指定でも初期状態は開いており、スマホでは画面の1/3を出典が覆ってしまう。
 // 畳んでおき、ⓘ ボタンで開けるようにする（出典はパネル下部にも常時掲載）。
 // MapLibre はソースが増えるたびに出典を組み直して再表示するため、
