@@ -49,32 +49,45 @@
 
       <div id="panel-body" class="panel-body">
         <div class="field">
-          <div class="field-head">
-            <span class="field-label">ハザードマップ（重ねられます）</span>
-            <div class="field-actions">
-              <button id="hazard-all-off" class="mini-btn" type="button">全OFF</button>
+          <div class="field-top">
+            <div class="field-head">
+              <h2 class="field-label">ハザードマップ</h2>
+              <div class="field-actions">
+                <button id="hazard-all-off" class="mini-btn" type="button">全OFF</button>
+              </div>
             </div>
+            <p class="field-desc">行政が公表している想定区域。何枚でも重ねられます。</p>
           </div>
           <div id="hazards" class="toggles"></div>
         </div>
 
         <div class="field">
-          <div class="field-head">
-            <span class="field-label">浸水シミュレーション（浸水ナビ）</span>
+          <div class="field-top">
+            <div class="field-head">
+              <h2 class="field-label">浸水シミュレーション</h2>
+            </div>
+            <p class="field-desc">
+              破堤点を選び、浸水の広がりを時間を追って見ます（国土地理院 浸水ナビ）。
+            </p>
           </div>
           <div id="suibou" class="toggles"></div>
         </div>
 
         <div class="field">
-          <div class="field-head">
-            <span class="field-label">重ねる情報</span>
+          <div class="field-top">
+            <div class="field-head">
+              <h2 class="field-label">重ねる情報</h2>
+            </div>
+            <p class="field-desc">避難場所・人口・建物など、判断の材料になる情報。</p>
           </div>
           <div id="overlays" class="toggles"></div>
         </div>
 
         <div class="field">
-          <div class="field-head">
-            <span class="field-label">視点</span>
+          <div class="field-top">
+            <div class="field-head">
+              <h2 class="field-label">視点</h2>
+            </div>
           </div>
           <div id="pitch-seg" class="seg"></div>
         </div>

@@ -163,17 +163,41 @@ body {
   gap: 8px;
 }
 
+/* 見出し＋説明をひとまとまりにし、下線で中身と切り分ける。
+   以前は見出しが 11px・薄色で、中の項目（13px・濃色）より小さく薄かった。
+   自分の中身に負ける見出しはカテゴリーの切れ目として読まれない。 */
+.field-top {
+  display: grid;
+  gap: 3px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
 .field-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .field-label {
-  font-size: 11px;
+  margin: 0;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--ink-3);
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+/* 「洪水の想定区域」と「浸水シミュレーション」の違いなど、
+   名前だけでは伝わらないことをここで一行だけ補う */
+.field-desc {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  /* 320px 幅だと「…重ねられま／す。」のように末尾が数文字だけ次行へ落ちる。
+     行長を揃えて孤立を防ぐ（非対応ブラウザでは従来どおり折り返すだけ） */
+  text-wrap: balance;
 }
 
 .field-actions {
