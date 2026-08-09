@@ -68,6 +68,8 @@ const PNG_1X1 = Buffer.from(
 export interface SuibouMockOptions {
   /** GetBreakPoint が返す破堤点。空配列にすると「該当なし」を再現できる */
   breakPoints?: typeof BREAK_POINTS;
+  /** GetBreakPoint を失敗させる（APIの不調を再現する） */
+  breakPointStatus?: number;
 }
 
 /** 浸水ナビへのリクエストをすべて横取りする */
@@ -78,6 +80,9 @@ export async function mockSuibouNavi(page: Page, opts: SuibouMockOptions = {}): 
     const url = route.request().url();
 
     if (url.includes('/Api/Public/GetBreakPoint')) {
+      if (opts.breakPointStatus) {
+        return route.fulfill({ status: opts.breakPointStatus, body: '' });
+      }
       return route.fulfill({ json: breakPoints });
     }
     if (url.includes('/Api/Public/GetMaxDepthByTime')) {
@@ -93,6 +98,44 @@ export async function mockSuibouNavi(page: Page, opts: SuibouMockOptions = {}): 
       return route.fulfill({ contentType: 'image/png', body: PNG_1X1 });
     }
     return route.fulfill({ status: 404, body: '' });
+  });
+}
+
+/**
+ * 地理院のラスタタイル（写真・陰影起伏）を 1x1 の画像で差し替える。
+ *
+ * 背景の切替は `map.once('idle')` を待って組み直すため、タイルの取得が終わらないと
+ * 先へ進まない。実タイルを引くと CI の回線次第で遅く不安定になるので、
+ * 背景切替のテストではここを止める（ベクタタイルは触らない）。
+ */
+export async function mockGsiRasterTiles(page: Page): Promise<void> {
+  await page.route('**/cyberjapandata.gsi.go.jp/xyz/seamlessphoto/**', (route: Route) =>
+    route.fulfill({ contentType: 'image/png', body: PNG_1X1 }),
+  );
+  await page.route('**/cyberjapandata.gsi.go.jp/xyz/hillshademap/**', (route: Route) =>
+    route.fulfill({ contentType: 'image/png', body: PNG_1X1 }),
+  );
+}
+
+/** 現在のスタイルの素性（背景の種類・地形の ON/OFF）を覗く */
+export async function styleInfo(
+  page: Page,
+): Promise<{ sources: string[]; firstLayer: string | null; terrain: boolean }> {
+  return page.evaluate(() => {
+    const m = (
+      window as unknown as {
+        __map: {
+          getStyle(): { layers: { id: string }[]; sources: Record<string, unknown> };
+          getTerrain(): unknown;
+        };
+      }
+    ).__map;
+    const style = m.getStyle();
+    return {
+      sources: Object.keys(style.sources),
+      firstLayer: style.layers[0]?.id ?? null,
+      terrain: !!m.getTerrain(),
+    };
   });
 }
 
