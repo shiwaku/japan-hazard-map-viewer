@@ -70,16 +70,21 @@ export interface SuibouMockOptions {
   breakPoints?: typeof BREAK_POINTS;
   /** GetBreakPoint を失敗させる（APIの不調を再現する） */
   breakPointStatus?: number;
+  /** GetBreakPoint の応答を遅らせる。破堤点が密集する地点の遅さを再現する */
+  breakPointDelayMs?: number;
 }
 
 /** 浸水ナビへのリクエストをすべて横取りする */
 export async function mockSuibouNavi(page: Page, opts: SuibouMockOptions = {}): Promise<void> {
   const breakPoints = opts.breakPoints ?? BREAK_POINTS;
 
-  await page.route('**/suiboumap.gsi.go.jp/**', (route: Route) => {
+  await page.route('**/suiboumap.gsi.go.jp/**', async (route: Route) => {
     const url = route.request().url();
 
     if (url.includes('/Api/Public/GetBreakPoint')) {
+      if (opts.breakPointDelayMs) {
+        await new Promise((r) => setTimeout(r, opts.breakPointDelayMs));
+      }
       if (opts.breakPointStatus) {
         return route.fulfill({ status: opts.breakPointStatus, body: '' });
       }
@@ -117,20 +122,30 @@ export async function mockGsiRasterTiles(page: Page): Promise<void> {
   );
 }
 
-/** 現在のスタイルの素性（背景の種類・地形の ON/OFF）を覗く */
-export async function styleInfo(
-  page: Page,
-): Promise<{ sources: string[]; firstLayer: string | null; terrain: boolean }> {
+export interface StyleInfo {
+  sources: string[];
+  firstLayer: string | null;
+  terrain: boolean;
+}
+
+/**
+ * 現在のスタイルの素性（背景の種類・地形の ON/OFF）を覗く。
+ *
+ * setStyle の最中は getStyle() が undefined を返す。その瞬間に当たったら null を返し、
+ * 呼び出し側の expect.poll が待ち直せるようにする（例外にすると poll が打ち切られる）。
+ */
+export async function styleInfo(page: Page): Promise<StyleInfo | null> {
   return page.evaluate(() => {
     const m = (
       window as unknown as {
         __map: {
-          getStyle(): { layers: { id: string }[]; sources: Record<string, unknown> };
+          getStyle(): { layers: { id: string }[]; sources: Record<string, unknown> } | undefined;
           getTerrain(): unknown;
         };
       }
     ).__map;
     const style = m.getStyle();
+    if (!style) return null;
     return {
       sources: Object.keys(style.sources),
       firstLayer: style.layers[0]?.id ?? null,
@@ -153,13 +168,19 @@ export async function waitForMap(page: Page): Promise<void> {
   );
 }
 
-/** 現在のスタイルにおける、自前レイヤーの並び（下→上） */
+/**
+ * 現在のスタイルにおける、自前レイヤーの並び（下→上）。
+ * setStyle の最中は空配列を返す（styleInfo と同じ理由）。
+ */
 export async function ownLayerOrder(page: Page): Promise<string[]> {
   return page.evaluate(() => {
-    const m = (window as unknown as { __map: { getStyle(): { layers: { id: string }[] } } }).__map;
-    return m
-      .getStyle()
-      .layers.map((l) => l.id)
+    const m = (
+      window as unknown as { __map: { getStyle(): { layers: { id: string }[] } | undefined } }
+    ).__map;
+    const style = m.getStyle();
+    if (!style) return [];
+    return style.layers
+      .map((l) => l.id)
       .filter((id) =>
         /^(suibou|flood_|hightide|tsunami|naisui|dosekiryu|kyukeis|jisuberi|nadare|100m_mesh|plateau-pmtiles|hinanbasho|denshouhi)/.test(
           id,

@@ -165,6 +165,23 @@ test('破堤点が無い地点では検索可能範囲への案内を出す', as
   await expect(page.locator('.suibou-status')).toContainText('検索可能範囲');
 });
 
+test('検索が長引くと経過秒数と目安を知らせる', async ({ page, context }) => {
+  await context.unroute('**/suiboumap.gsi.go.jp/**').catch(() => undefined);
+  await mockSuibouNavi(page, { breakPointDelayMs: 6000 });
+
+  await page.locator('#suibou .layer-item .switch').first().click();
+  await page.locator('#map').click({ position: { x: 700, y: 400 } });
+
+  const status = page.locator('.suibou-status');
+  await expect(status).toContainText('検索しています');
+  // 3秒を過ぎたら経過秒数と、待てば返ってくる旨が出る
+  await expect(status).toContainText('10秒ほどかかることがあります', { timeout: 20_000 });
+  await expect(status).toContainText(/（\d+秒）/);
+  // 返ってきたら結果に差し替わる（秒数は残さない）
+  await expect(status).toContainText('3件', { timeout: 20_000 });
+  await expect(status).not.toContainText('秒）');
+});
+
 test('浸水ナビが応答しないときはエラーを知らせる', async ({ page, context }) => {
   await context.unroute('**/suiboumap.gsi.go.jp/**').catch(() => undefined);
   await mockSuibouNavi(page, { breakPointStatus: 503 });
