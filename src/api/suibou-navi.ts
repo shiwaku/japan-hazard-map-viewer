@@ -11,17 +11,35 @@ const MIN_INTERVAL_MS = 2000;
 let lastRequestAt = 0;
 let queue: Promise<unknown> = Promise.resolve();
 
-const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+/** 中断されたら待たずに起きる sleep */
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    const done = (): void => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', done);
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    signal?.addEventListener('abort', done, { once: true });
+  });
+}
+
+const aborted = (): DOMException => new DOMException('aborted', 'AbortError');
 
 /**
  * 直列化＋間隔制御つきの fetch。
  * 同時に複数呼んでも順番待ちになり、2 秒間隔が守られる。
+ *
+ * 中断済みのものは間隔を待たずに行列から抜ける。待ってから捨てると、
+ * 利用者が気を変えた後の操作（別地点の検索など）がそのぶん待たされる。
+ * 実リクエストは出していないので lastRequestAt も更新しない＝間隔は消費しない。
  */
 async function throttledFetch(url: string, signal?: AbortSignal): Promise<Response> {
   const run = async (): Promise<Response> => {
+    if (signal?.aborted) throw aborted();
     const wait = lastRequestAt + MIN_INTERVAL_MS - Date.now();
-    if (wait > 0) await sleep(wait);
-    if (signal?.aborted) throw new DOMException('aborted', 'AbortError');
+    if (wait > 0) await sleep(wait, signal);
+    if (signal?.aborted) throw aborted();
     lastRequestAt = Date.now();
     return fetch(url, { signal });
   };

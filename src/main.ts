@@ -223,6 +223,7 @@ const panel = buildPanel(state, {
 // ---- パネル（浸水シミュレーション） ----
 let playTimer: number | null = null;
 let searchAbort: AbortController | null = null;
+let searchStatusTimer: number | null = null;
 
 const suibouPanel: SuibouPanel = buildSuibouPanel(
   document.getElementById('suibou') as HTMLElement,
@@ -234,6 +235,7 @@ const suibouPanel: SuibouPanel = buildSuibouPanel(
       closeSuibouDepthPopup();
       if (!on) {
         searchAbort?.abort();
+        stopSearchStatus();
         suibou.breakPoints = [];
         suibou.selected = null;
         suibou.riverFilter = null;
@@ -324,15 +326,46 @@ function selectBreakPoint(id: string | null): void {
   suibouPanel.render();
 }
 
+/**
+ * 検索中の状態表示。
+ *
+ * 破堤点が密集する地点では API の応答に 10 秒前後かかることがある（設計メモ 9.1）。
+ * 静止したテキストのまま待たせると固まったように見え、連打を誘発する。
+ * 長引いたときだけ経過秒数と目安を出して、待てば返ってくることを示す。
+ */
+function startSearchStatus(): void {
+  stopSearchStatus();
+  const startedAt = Date.now();
+  const tick = (): void => {
+    const sec = Math.floor((Date.now() - startedAt) / 1000);
+    suibouPanel.setStatus(
+      sec < 3
+        ? '想定破堤点を検索しています…'
+        : `想定破堤点を検索しています…（${sec}秒）` +
+            '破堤点が多い地点では10秒ほどかかることがあります。',
+    );
+  };
+  tick();
+  searchStatusTimer = window.setInterval(tick, 1000);
+}
+
+function stopSearchStatus(): void {
+  if (searchStatusTimer === null) return;
+  clearInterval(searchStatusTimer);
+  searchStatusTimer = null;
+}
+
 async function searchBreakPoints(lng: number, lat: number): Promise<void> {
   searchAbort?.abort();
   const ctrl = new AbortController();
   searchAbort = ctrl;
-  suibouPanel.setStatus('想定破堤点を検索しています…');
+  startSearchStatus();
 
   try {
     const list: BreakPoint[] = await fetchBreakPoints(lng, lat, ctrl.signal);
+    // 中断されている場合、あとから来た検索が既に自分の表示を出している。触らない
     if (ctrl.signal.aborted) return;
+    stopSearchStatus();
     suibou.breakPoints = list;
     suibou.selected = null;
     buildSuibouLayers();
@@ -369,6 +402,7 @@ async function searchBreakPoints(lng: number, lat: number): Promise<void> {
     suibouPanel.render();
   } catch (e) {
     if ((e as Error).name === 'AbortError') return;
+    stopSearchStatus();
     suibouPanel.setStatus('浸水ナビの取得に失敗しました。時間をおいて再度お試しください。');
     suibouPanel.setSuggestion(null);
   }
